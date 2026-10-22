@@ -1,0 +1,218 @@
+<title>All Mighty One Prompts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: reading column for the workflow, then two phases (master screen → assets), each a card grid; reference chips name the files to attach */
+:root {
+  --bg: #F1EFFB; --surface: #FFFFFF; --ink: #221C3A; --muted: #5E5880;
+  --brand: #5B34D6; --accent: #FF9926; --line: #DAD4F0; --code: #F7F5FD; --onbrand: #FFFFFF; --chip: #FFF1E0;
+  --display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15122A; --surface: #1F1A3A; --ink: #ECE8FA; --muted: #A49CC8;
+  --brand: #B9A4FF; --accent: #FFB35C; --line: #332C58; --code: #18142E; --onbrand: #15122A; --chip: #2E2618; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #15122A; --surface: #1F1A3A; --ink: #ECE8FA; --muted: #A49CC8;
+  --brand: #B9A4FF; --accent: #FFB35C; --line: #332C58; --code: #18142E; --onbrand: #15122A; --chip: #2E2618; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 36px; }
+.prose { max-width: 72ch; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; color: var(--brand); }
+h1 { font-size: clamp(34px, 6vw, 52px); font-weight: 800; }
+h2 { font-size: 28px; font-weight: 800; }
+h3 { font-size: 19px; font-weight: 600; color: var(--ink); }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: 13px; }
+.lede { font-size: 17px; color: var(--muted); margin-top: 8px; }
+.stack { display: grid; gap: 12px; }
+ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 10px; }
+ol.steps li::marker { font-family: var(--display); font-weight: 800; color: var(--accent); }
+.tip { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 14px 16px; }
+.tip b { color: var(--brand); }
+.label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
+  background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--ink); }
+button { font: inherit; cursor: pointer; }
+.copy { font-family: var(--body); font-weight: 700; font-size: 13px; border: 0; border-radius: 999px; padding: 6px 14px;
+  background: var(--brand); color: var(--onbrand); justify-self: start; }
+.copy.done { background: var(--accent); color: #221C3A; }
+.copy:focus-visible, .tab:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--bg); padding-block: 10px; }
+.tab { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 14px; }
+.tab[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--onbrand); }
+.phase { display: grid; gap: 14px; border-top: 3px solid var(--accent); padding-top: 18px; }
+.phase > p { color: var(--muted); max-width: 75ch; }
+.group { display: grid; gap: 12px; }
+.group + .group { margin-top: 18px; }
+.group > p { color: var(--muted); max-width: 75ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 14px; align-items: start; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.card.master { border: 2px solid var(--accent); }
+.card.redo { border: 2px solid #F25F5C; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12.5px; }
+.meta span { border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meta .file { font-family: var(--mono); color: var(--ink); }
+.meta .ref { border-color: var(--accent); background: var(--chip); color: var(--ink); font-family: var(--mono); }
+.meta .redo { border-color: #F25F5C; color: #F25F5C; font-weight: 700; }
+.note { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .copy { transition: background .15s; } }
+</style>
+<div class="wrap">
+  <header class="prose">
+    <p class="label">All Mighty One · hub art · layout first</p>
+    <h1>Hub Prompt Pack</h1>
+    <p class="lede">One master mockup of the hub sets the look. Every asset after it attaches that mockup, so the logo, the twelve game icons and the background all come out as one family.</p>
+  </header>
+
+  <section class="stack prose">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><b>Phase 1: the master screen.</b> <code>mock_hub</code> attaches a screenshot of the real hub (<code>hub_current.png</code>) and redraws it as a finished, polished screen with the same layout. Re-roll it until you love it.</li>
+      <li><b>Phase 2: assets.</b> Every card names the images to attach (the orange chips). Game icons also attach a screenshot of that game (<code>thumb_&lt;game&gt;.png</code>), so Gemini draws the right game in the hub's style.</li>
+      <li><b>The tool does the clicking.</b> <code>python ArtPrompts/gemini_gen.py gen todo</code> runs every prompt in the Gemini window, attaching the references for you, and saves candidates in <code>ArtPrompts/out/</code>. <code>keep</code> picks one, <code>fix</code> sends a follow-up change.</li>
+      <li><b>Cut-out goes straight into the hub.</b> <code>python ArtPrompts/cutout.py</code> crops and cleans the kept images into <code>Assets/_Collection/Art/Hub</code>; rebuilding the hub picks them up.</li>
+    </ol>
+    <div class="tip"><b>Negative prompt</b> (if your generator has one): <span id="neg"></span> <button class="copy" data-copy="neg" type="button">Copy</button></div>
+    <div class="tip"><b>Text in the mockup is fine.</b> It needs labels to read as real UI; the game draws its own text, so misspellings don't matter there. Icons, the background and the store graphics have no text.</div>
+  </section>
+
+  <nav class="tabs" id="tabs" aria-label="Phases"></nav>
+  <div id="phases" class="stack" style="gap:48px"></div>
+</div>
+
+<script>
+const STYLE = "Art for All Mighty One, a bright casual mobile collection of twelve mini-games (runners, arcade and puzzle games). Glossy, chunky, playful 3D-cartoon look in the quality of top casual hits like Subway Surfers, Royal Match and Voodoo games: soft rounded shapes, glossy highlights, soft lighting from the top left, gentle soft shadows, clean readable silhouettes, saturated cheerful colours, high quality mobile game art.";
+const UISYS = "UI style: a soft violet-to-sky-blue gradient background with faint playful shapes; chunky rounded game cards, each in its game's colour, with a darker 3D bottom lip and a white rounded picture window; glossy pill-shaped buttons with a darker bottom lip (green for PLAY, orange for rewards, red, violet); white bold rounded lettering with a soft dark purple outline; pink-violet faceted gems as the currency. Palette: violet #6C3BF0, sky blue #2AA8FF, green #43CC55, orange #FF9926, red #FF4D5C, gem pink #E040FB, ink #2A1E6B.";
+const MOCK = `${STYLE} A polished, finished screenshot mockup of one portrait mobile game screen (tall phone, 9:19.5), the way a top studio presents final UI in a pitch deck. Straight-on flat screen view that fills the whole image: no phone frame, no hands, no device, no perspective. ${UISYS}`;
+const MOCK_END = "All text short and spelled exactly as written, in a bold rounded game font. Clear visual hierarchy, generous spacing, everything readable at phone size. Never write colour codes or hex numbers on the screen.";
+const SAME_HUB = "Use the attached hub mockup (mock_hub.png) as the design reference: keep exactly the same art style, materials, lighting, colours and level of polish.";
+const NEG = "watermark, signature, frame, border, photo, photorealistic, blurry, noisy, muddy colours, dark and gritty, harsh black outlines, cropped subject, extra limbs";
+
+const GAMES = [
+  ["squad", "Squad Runner", "#3D8BFF", "a runner where a squad of little soldiers grows through gates and fights a boss at the end", "a squad of small cute blue-helmet soldier characters running down a sunny cartoon street towards a giant red boss"],
+  ["crowd", "Crowd Count", "#2EC27E", "a runner where a crowd grows or shrinks through number gates", "a big crowd of small blue stick-figure people pouring through a glowing blue gate on a purple neon track"],
+  ["brain", "Big Brain", "#FF5FA2", "a runner where the character's brain grows bigger through gates", "a cute character with a huge glossy pink brain for a head running happily on a white striped track"],
+  ["pistol", "Pistol Run", "#FF8A3D", "a runner where a flying pistol shoots its way past obstacles", "a chunky shiny cartoon pistol flying forward and firing bright golden bullets at a stack of wooden crates on a runner track"],
+  ["dodge", "Bull Dodge", "#E8553D", "an arcade game where a kid dodges charging bulls in a western arena", "a small cartoon cowboy kid leaping aside as two angry cartoon bulls charge past in a dusty western arena with barrels and crates"],
+  ["roads", "3 Roads", "#8A5CFF", "an arcade runner on three parallel roads where each runner switches sides to dodge boxes", "three parallel glowing lanes seen from behind, a small runner on each lane hopping sideways to dodge a red box"],
+  ["bomb", "Bomb Survival", "#FF6B2C", "an arcade survival game in a tiled arena full of bombs, cannon shots and line blasts", "three round black cartoon bombs with lit sparkling fuses and a cross-shaped orange explosion on a tiled arena floor, a small hero dodging"],
+  ["ninja", "Ninja Arena", "#17B3A3", "an arena action game where a ninja slices through waves of zombies", "a cute chibi ninja with a red headband slicing a katana through a goofy green cartoon zombie, a second zombie behind"],
+  ["blocks", "Block Puzzle", "#22B8E6", "a block puzzle where pieces are dropped onto an 8 by 8 grid to clear lines", "colourful glossy jelly-like puzzle blocks in L, T and square shapes dropping onto a dark 8 by 8 grid, a line bursting with sparkles"],
+  ["adventure", "Block Adventure", "#5B6CFF", "a level-based block puzzle with target scores", "glossy pink jewel blocks forming a diagonal pattern on a dark navy grid, with a shiny gold star and a little flag above"],
+  ["cubey", "Cubey", "#FFB52E", "a sliding puzzle where a cute cube slides through an icy maze and every tile must be visited", "a cute yellow cube with big googly eyes sliding across a blue icy tile maze, leaving a glowing trail, snowflakes around"],
+  ["splat", "Splat", "#7CC943", "a maze puzzle where a cube paints every tile it rolls over", "a cute cube rolling through a maze and splashing bright green paint onto every tile it crosses, paint drops flying"],
+];
+
+const SCREENS = [
+ {n:"Hub (master)", f:"mock_hub.png", a:"9:16", master:true, r:["hub_current.png"], redo:"Re-roll: v1 copied the screenshot almost unchanged (the card pictures stayed game screenshots). The prompt now asks for illustrated card art and more depth.", note:"Generate this first. Every asset below attaches it.", text:
+  `The attached image is a rough screenshot of the current hub screen of the game. Keep the same layout, elements and positions, but redraw it as a far more polished, premium, finished design, like the menu of a top-grossing casual game: richer depth and glossy 3D materials on every card and button, soft glows and light, a more vivid background. Very important: the picture window of every game card shows a bright illustrated 3D-cartoon key art of that game (characters and objects drawn in the same glossy style), never a screenshot. ${MOCK} The screen, from top to bottom: (1) a top bar: on the left a dark rounded pill with a big pink faceted gem, the number "1,001" and a small round green plus button; on the right a round red button with a crossed-out "AD" symbol and a round violet button with a white gear. (2) The game logo "ALL MIGHTY ONE": big chunky glossy 3D letters, "ALL MIGHTY" in white with a thick dark purple outline, "ONE" larger below in a glossy gold-to-orange gradient, with small sparkles. (3) A small label "TRY THIS GAME", then a wide rounded featured card in blue showing a square picture of a city runner game on the left, the title "SQUAD RUNNER", the line "Grow your squad, smash the boss", a dark pill "LEVEL 1" and a big glossy green "PLAY" button with a play triangle, with soft light rays behind the picture. (4) A row of four pill tabs: "ALL" selected in white, then "RUNNER", "ARCADE", "PUZZLE" in translucent white. (5) A two-column grid of chunky game cards, each in its own colour (blue, green, pink, orange, red, purple), with a big rounded picture window showing that game, the game name in white bold letters and a dark pill with "LEVEL 1" or "BEST 1427"; a small tilted red "NEW" badge on the top right corner of some cards; one card is locked: darkened, with a white padlock and a dark pill with a pink gem and "100". (6) A thin empty strip at the very bottom for a banner ad. Background: soft violet at the top fading to sky blue at the bottom with faint playful shapes. ${MOCK_END}`},
+];
+
+const LOGO = [
+ {n:"Logo", f:"logo.png", a:"16:9", r:["mock_hub.png"], text:
+  `${SAME_HUB} Draw only the game logo from the mockup, larger and sharper, as a standalone asset: the words "ALL MIGHTY ONE" in big chunky rounded glossy 3D letters, "ALL MIGHTY" on one line in white with a thick dark purple outline and a soft drop shadow, "ONE" larger on the line below in a glossy gold-to-orange gradient with a thick dark purple outline, a small golden crown tilted on top of the "O" of "ONE", a few small white sparkles. Spelled exactly ALL MIGHTY ONE. Centred, filling most of the frame, on a plain flat pure white background, nothing else.`, note:"The cut-out removes the white background."},
+ {n:"App icon", f:"app_icon.png", a:"1:1", r:["mock_hub.png", "logo.png"], text:
+  `${SAME_HUB} A Google Play app icon for the game collection: a glossy golden crown in the centre with a big chunky number-one style "1" shape inside it, surrounded by tiny floating game items (a pink gem, a puzzle block, a cartoon bomb, a little runner), on a rich violet-to-blue gradient background with soft light rays. Square, full bleed, the background fills the whole image edge to edge, no text, no rounded-corner mask, no border.`},
+ {n:"Feature graphic", f:"feature_graphic.png", a:"16:9", r:["mock_hub.png", "logo.png"], text:
+  `${SAME_HUB} A Google Play feature graphic banner: the "ALL MIGHTY ONE" logo from the attached logo image on the left half, and on the right half a fun group of characters and objects from the mini-games bursting out together: a little blue soldier, a crowd of tiny blue runners, a character with a giant pink brain, a cowboy kid with a bull, a cute ninja, a cartoon bomb, glossy puzzle blocks and a yellow cube with googly eyes. Bright violet-to-sky-blue background with light rays. Wide landscape banner, full bleed, the logo is the only text.`},
+];
+
+const ICON = "Square game icon art, full bleed: the scene fills the whole image edge to edge with a soft background in the game's colour, the main subject big and centred, readable at small sizes. No text, no letters, no numbers, no logo, no border, no rounded-corner frame.";
+const ICONS = GAMES.map(([id, name, hex, what, scene]) => ({
+  n: name, f: `icon_${id}.png`, a: "1:1", r: ["mock_hub.png", `thumb_${id}.png`], text:
+  `The first attached image is the hub of the game collection: match its art style, materials, lighting and level of polish exactly. The second attached image is a screenshot of the real game "${name}", ${what}: keep its characters, objects and colours recognisable. ${STYLE} Draw the hub card art for this game: ${scene}, background tinted with the game colour ${hex}. ${ICON}`,
+}));
+
+const HUB = [
+ {n:"Hub background", f:"bg_hub.png", a:"9:16", r:["mock_hub.png"], text:
+  `${SAME_HUB} Draw only the background of the hub screen, with no interface at all: no cards, no buttons, no logo, no text. A soft gradient from violet at the top to sky blue at the bottom, a gentle glow of light near the top centre, faint scattered playful shapes (circles, rounded squares, plus signs, little stars) in slightly lighter tones, very low contrast so cards and white text stay readable on top. Tall portrait phone background, full bleed.`},
+];
+
+const PHASES = [
+  ["screens", "Phase 1 · Master screen", "One full-screen mockup. Re-roll it until it looks great; everything after it copies its style.", [["", "", SCREENS]]],
+  ["assets", "Phase 2 · Assets", "Attach the orange-chip images, paste the prompt, and save the result under the file name shown.",
+    [["Logo & store", "The logo replaces the drawn title in the hub; the app icon and feature graphic are for the Play Store listing.", LOGO],
+     ["Game icons", "Card art for the twelve games. Each prompt attaches the hub mockup (style) and a screenshot of the game (content).", ICONS],
+     ["Hub", "", HUB]]],
+];
+
+function card(c) {
+  const el = document.createElement("article");
+  el.className = "card" + (c.master ? " master" : "") + (c.redo ? " redo" : "");
+  const h = document.createElement("h3"); h.textContent = c.n;
+  const meta = document.createElement("div"); meta.className = "meta";
+  const f = document.createElement("span"); f.className = "file"; f.textContent = c.f; meta.append(f);
+  const a = document.createElement("span"); a.textContent = c.a || "9:16"; meta.append(a);
+  (c.r || []).forEach(r => { const s = document.createElement("span"); s.className = "ref"; s.textContent = "+ " + r; meta.append(s); });
+  if (c.redo) { const s = document.createElement("span"); s.className = "redo"; s.textContent = "RE-ROLL"; meta.append(s); }
+  el.append(h, meta);
+  if (c.redo) { const n = document.createElement("p"); n.className = "note"; n.textContent = c.redo; el.append(n); }
+  const pre = document.createElement("pre"); pre.textContent = c.text;
+  const btn = document.createElement("button"); btn.className = "copy"; btn.type = "button"; btn.textContent = "Copy";
+  btn.addEventListener("click", () => copy(pre, btn));
+  el.append(pre, btn);
+  if (c.note) { const n = document.createElement("p"); n.className = "note"; n.textContent = c.note; el.append(n); }
+  return el;
+}
+
+function copy(src, btn) {
+  const text = src.textContent;
+  const label = btn.dataset.label || "Copy";
+  const done = () => { btn.textContent = "Copied"; btn.classList.add("done"); setTimeout(() => { btn.textContent = label; btn.classList.remove("done"); }, 1400); };
+  const select = () => { const r = document.createRange(); r.selectNodeContents(src); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Press Ctrl+C"; };
+  try { navigator.clipboard.writeText(text).then(done, select); } catch { select(); }
+}
+
+document.getElementById("neg").textContent = NEG;
+document.querySelectorAll("[data-copy]").forEach(b => { b.dataset.label = b.textContent; b.addEventListener("click", () => copy(document.getElementById(b.dataset.copy), b)); });
+
+const tabs = document.getElementById("tabs"), phases = document.getElementById("phases");
+const all = [["all", "All"], ...PHASES.map(p => [p[0], p[1].split(" · ")[1]]), ["redo", "Re-roll"]];
+all.forEach(([id, label]) => {
+  const b = document.createElement("button");
+  b.className = "tab"; b.type = "button"; b.textContent = label; b.setAttribute("aria-pressed", id === "all");
+  b.addEventListener("click", () => {
+    tabs.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-pressed", t === b));
+    phases.querySelectorAll(".phase").forEach(p => p.hidden = id !== "all" && id !== "redo" && p.id !== id);
+    phases.querySelectorAll(".card").forEach(c => c.hidden = id === "redo" && !c.classList.contains("redo"));
+    phases.querySelectorAll(".group").forEach(g => g.hidden = id === "redo" && !g.querySelector(".card.redo"));
+    try { localStorage.setItem("amo-tab", id); } catch {}
+  });
+  tabs.append(b);
+});
+PHASES.forEach(([id, title, intro, groups]) => {
+  const sec = document.createElement("section");
+  sec.className = "phase"; sec.id = id;
+  const h = document.createElement("h2"); h.textContent = title;
+  const p = document.createElement("p"); p.textContent = intro;
+  sec.append(h, p);
+  groups.forEach(([gt, gi, cards]) => {
+    const g = document.createElement("div");
+    g.className = "group";
+    if (gt) { const h3 = document.createElement("h3"); h3.textContent = `${gt} · ${cards.length}`; g.append(h3); }
+    if (gi) { const gp = document.createElement("p"); gp.textContent = gi; g.append(gp); }
+    const grid = document.createElement("div"); grid.className = "grid";
+    cards.forEach(c => grid.append(card(c)));
+    g.append(grid);
+    sec.append(g);
+  });
+  phases.append(sec);
+});
+
+// Machine-readable copy of every prompt for ArtPrompts/gemini_gen.py, which reads it with a headless browser.
+const EXPORT = [];
+PHASES.forEach(([phase, , , groups]) => groups.forEach(([group, , cards]) => cards.forEach(c => EXPORT.push({
+  phase, group: group || "Screens", name: c.n, file: c.f, aspect: c.a || "9:16", size: c.s || "", refs: c.r || [], prompt: c.text,
+}))));
+const exportTag = document.createElement("script");
+exportTag.type = "application/json"; exportTag.id = "prompt-export";
+exportTag.textContent = JSON.stringify(EXPORT);
+document.body.append(exportTag);
+
+try { const saved = localStorage.getItem("amo-tab"); const i = all.findIndex(a => a[0] === saved); if (i > 0) tabs.children[i].click(); } catch {}
+</script>
