@@ -268,6 +268,18 @@ namespace AllMightyOne.EditorTools
             gloss.rectTransform.anchorMin = new Vector2(0, 0.45f); gloss.rectTransform.anchorMax = Vector2.one;
             gloss.rectTransform.offsetMin = new Vector2(10, 0); gloss.rectTransform.offsetMax = new Vector2(-10, -10);
 
+            // light sweep clipped to the card's rounded face: plays on unlock, and keeps returning on the featured card
+            var shineMask = Img("Shine", face, Ui("rr48"), Color.white);
+            Stretch(shineMask.rectTransform);
+            shineMask.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+            var band = Img("Band", shineMask.transform, null, new Color(1, 1, 1, 0.32f));
+            band.rectTransform.anchorMin = new Vector2(0.5f, 0); band.rectTransform.anchorMax = new Vector2(0.5f, 1);
+            band.rectTransform.sizeDelta = new Vector2(featured ? 110 : 90, 220);
+            band.rectTransform.localEulerAngles = new Vector3(0, 0, -20f);
+            card.Shine = shineMask.gameObject.AddComponent<UiShine>();
+            card.Shine.Band = band.rectTransform;
+            card.Shine.Every = featured ? 3.5f : 0f;
+
             var button = root.gameObject.AddComponent<Button>();
             button.targetGraphic = card.Face;
             button.transition = Selectable.Transition.None;
@@ -316,6 +328,11 @@ namespace AllMightyOne.EditorTools
                 Place(pi.rectTransform, new Vector2(0, 0.5f), new Vector2(42, 3), new Vector2(54, 54), new Vector2(0, 0.5f));
                 var pt = Txt("Label", playFace, "PLAY", 52, Color.white);
                 Stretch(pt.rectTransform, 92, 0, 18, 0);
+                var pulse = playFace.parent.gameObject.AddComponent<UiFloat>(); // a gentle heartbeat on the call to action
+                pulse.Height = 0f;
+                pulse.Speed = 7f;
+                pulse.Breathe = 0.05f;
+                card.Shine.transform.SetAsLastSibling();
                 return card;
             }
 
@@ -348,6 +365,7 @@ namespace AllMightyOne.EditorTools
             Stretch(nt.rectTransform, 10, 0, 10, 0);
             badge.gameObject.AddComponent<UiFloat>().Height = 6;
             card.NewBadge = badge.gameObject;
+            card.Shine.transform.SetAsLastSibling();
             return card;
         }
 

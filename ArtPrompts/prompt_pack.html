@@ -133,12 +133,18 @@ const HUB = [
   `${SAME_HUB} Draw only the background of the hub screen, with no interface at all: no cards, no buttons, no logo, no text. A soft gradient from violet at the top to sky blue at the bottom, a gentle glow of light near the top centre, faint scattered playful shapes (circles, rounded squares, plus signs, little stars) in slightly lighter tones, very low contrast so cards and white text stay readable on top. Tall portrait phone background, full bleed.`},
 ];
 
+const UI_ART = [
+ {n:"Tutorial hand", f:"tut_hand.png", a:"1:1", r:["mock_hub.png"], note:"First-play hint in every game: the hand taps, drags and swipes over the play area.", text:
+  `${SAME_HUB} Draw a single cartoon hand used in mobile game tutorials, as a standalone sticker asset: a chunky white cartoon glove hand with the index finger pointing straight up and the other fingers folded, slightly tilted, soft glossy shading, a thick dark purple outline all around (the same outline colour as the logo), a small soft shadow. Centred, filling about 70% of the image, on a plain flat pure white background with nothing else: no text, no circles, no motion lines, no frame.`},
+];
+
 const PHASES = [
   ["screens", "Phase 1 · Master screen", "One full-screen mockup. Re-roll it until it looks great; everything after it copies its style.", [["", "", SCREENS]]],
   ["assets", "Phase 2 · Assets", "Attach the orange-chip images, paste the prompt, and save the result under the file name shown.",
     [["Logo & store", "The logo replaces the drawn title in the hub; the app icon and feature graphic are for the Play Store listing.", LOGO],
      ["Game icons", "Card art for the twelve games. Each prompt attaches the hub mockup (style) and a screenshot of the game (content).", ICONS],
-     ["Hub", "", HUB]]],
+     ["Hub", "", HUB],
+     ["UI", "Small interface pieces drawn in the same style.", UI_ART]]],
 ];
 
 function card(c) {

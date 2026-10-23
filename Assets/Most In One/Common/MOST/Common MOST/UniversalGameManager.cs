@@ -270,6 +270,7 @@ namespace Solo.MOST_IN_ONE
                 }
             }
             AllMightyOne.CollectionAnalytics.LevelComplete(GameId, _currentLevel - 1);
+            AllMightyOne.CollectionFeedback.RunEnded(true);
             _gameOverRoutine = StartCoroutine(GameOverState(true));
         }
 
@@ -279,6 +280,7 @@ namespace Solo.MOST_IN_ONE
             _gameOver = true;
             _won = false;
             AllMightyOne.CollectionAnalytics.LevelFail(GameId, _currentLevel);
+            AllMightyOne.CollectionFeedback.RunEnded(false);
             _gameOverRoutine = StartCoroutine(GameOverState(false));
         }
 

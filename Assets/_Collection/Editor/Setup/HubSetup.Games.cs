@@ -30,6 +30,25 @@ namespace AllMightyOne.EditorTools
         };
 
         const string MusicPath = "Assets/Most In One/Common/Sounds/LoopMusic.wav";
+        const string SoundsDir = "Assets/Most In One/Common/Sounds";
+
+        // first-play hint per scene: game id, gesture, the line shown, shown without a start menu, hand height (fraction
+        // of the canvas height from the centre, + is up) and how far the hand travels (fraction of the canvas width)
+        static readonly Dictionary<string, (string id, FirstPlayHint.Gesture gesture, string text, bool onStart, float y, float reach)> Hints = new()
+        {
+            ["EpicRunner"] = ("squad", FirstPlayHint.Gesture.SwipeSides, "DRAG TO STEER YOUR SQUAD", false, -0.22f, 0.24f),
+            ["Count"] = ("crowd", FirstPlayHint.Gesture.SwipeSides, "DRAG THROUGH THE BEST GATES", false, -0.22f, 0.24f),
+            ["BigBrain"] = ("brain", FirstPlayHint.Gesture.SwipeSides, "DRAG THROUGH THE GATES THAT GROW YOUR BRAIN", false, -0.22f, 0.24f),
+            ["Pistol"] = ("pistol", FirstPlayHint.Gesture.SwipeSides, "DRAG TO AIM AND SHOOT THE BARRELS", false, -0.22f, 0.24f),
+            ["Dodge"] = ("dodge", FirstPlayHint.Gesture.SwipeAround, "DRAG TO RUN AND DODGE THE BULLS", false, -0.2f, 0.22f),
+            ["3Road"] = ("roads", FirstPlayHint.Gesture.Tap, "TAP TO SWITCH SIDES", false, -0.2f, 0f),
+            ["Explosion"] = ("bomb", FirstPlayHint.Gesture.SwipeAround, "DRAG TO MOVE, STAY AWAY FROM THE BLASTS", false, -0.2f, 0.22f),
+            ["Ninja"] = ("ninja", FirstPlayHint.Gesture.SwipeAround, "DRAG TO MOVE, YOUR NINJA STRIKES ZOMBIES NEARBY", false, -0.2f, 0.22f),
+            ["BlockBlast Classic"] = ("blocks", FirstPlayHint.Gesture.DragUp, "DRAG PIECES ONTO THE BOARD AND FILL LINES", true, -0.33f, 0.2f),
+            ["BlockBlast Adventure"] = ("adventure", FirstPlayHint.Gesture.DragUp, "DRAG PIECES ONTO THE BOARD TO CLEAR THE BLOCKS", true, -0.33f, 0.2f),
+            ["Cubey"] = ("cubey", FirstPlayHint.Gesture.SwipeTurns, "SWIPE TO SLIDE AND COVER EVERY TILE", false, -0.08f, 0.24f),
+            ["Splat"] = ("splat", FirstPlayHint.Gesture.SwipeTurns, "SWIPE TO ROLL AND PAINT EVERY TILE", false, -0.08f, 0.24f),
+        };
 
         /// <summary>
         /// Every game gets a way back to the hub: a round home button on its menu (top-left, sized to the scene's
@@ -81,6 +100,7 @@ namespace AllMightyOne.EditorTools
                 }
                 Debug.Log($"[AMO] {scene.name}: home button on '{canvas.name}' (ref {refSize}), menu={(menu ? menu.name : "none")}, gems={(holder.GemPill ? "ours" : "kit")}");
 
+                AddHint(scene.name, canvas.transform, refSize);
                 AddMusic();
                 EditorUtility.SetDirty(holder);
                 Save(scene);
@@ -108,6 +128,50 @@ namespace AllMightyOne.EditorTools
             return pill.gameObject;
         }
 
+        static void AddHint(string sceneName, Transform canvas, Vector2 refSize)
+        {
+            foreach (var old in canvas.GetComponentsInChildren<FirstPlayHint>(true)) Object.DestroyImmediate(old.gameObject);
+            if (!Hints.TryGetValue(sceneName, out var h)) return;
+
+            var root = Stretch(Rect("First Play Hint", canvas));
+            root.SetAsLastSibling();
+            var hint = root.gameObject.AddComponent<FirstPlayHint>();
+            hint.Group = root.gameObject.AddComponent<CanvasGroup>();
+            hint.GameId = h.id;
+            hint.Motion = h.gesture;
+            hint.ShowOnStart = h.onStart;
+            hint.Reach = refSize.x * h.reach;
+
+            Vector2 touch = new(0, refSize.y * h.y);
+            float ripple = refSize.x * 0.2f;
+            var ring = Img("Ripple", root, Ui("ring"), new Color(1, 1, 1, 0.8f));
+            Place(ring.rectTransform, new Vector2(0.5f, 0.5f), touch, new Vector2(ripple, ripple));
+            hint.Ripple = ring.rectTransform;
+
+            // the fingertip (20% from the left, at the top of the art) is the touch point
+            var handArt = Ui("hand");
+            float w = refSize.x * 0.17f;
+            var hand = Img("Hand", root, handArt, Color.white);
+            Place(hand.rectTransform, new Vector2(0.5f, 0.5f), touch, new Vector2(w, w * handArt.rect.height / handArt.rect.width), new Vector2(0.2f, 1f));
+            hand.rectTransform.localEulerAngles = new Vector3(0, 0, 12f);
+            hint.Hand = hand.rectTransform;
+
+            // the line sits above the hand, or below it when the hand starts on the block tray (the board is above)
+            float side = h.gesture == FirstPlayHint.Gesture.DragUp ? -0.24f : 0.22f;
+            var plate = Img("Plate", root, Ui("pill"), new Color(0.08f, 0.03f, 0.25f, 0.6f));
+            var label = Txt("Label", plate.transform, h.text, refSize.x * 0.05f, Color.white);
+            label.textWrappingMode = TMPro.TextWrappingModes.Normal;
+            label.enableAutoSizing = false; // the plate is sized to the text, so it never needs to shrink
+            label.fontSize = refSize.x * 0.05f;
+            float maxW = refSize.x * 0.8f;
+            var size = label.GetPreferredValues(h.text, maxW, 0f);
+            var plateSize = new Vector2(Mathf.Min(size.x, maxW) + refSize.x * 0.1f, size.y + refSize.x * 0.07f);
+            Place(plate.rectTransform, new Vector2(0.5f, 0.5f), touch + new Vector2(0, refSize.x * side), plateSize);
+            Stretch(label.rectTransform, refSize.x * 0.05f, 0, refSize.x * 0.05f, 0);
+            hint.Label = label;
+            foreach (var g in root.GetComponentsInChildren<Graphic>(true)) g.raycastTarget = false;
+        }
+
         /// <summary> The persistent music player (one survives across scenes). Removes the kit's own scene music. </summary>
         static void AddMusic()
         {
@@ -125,9 +189,20 @@ namespace AllMightyOne.EditorTools
             var music = new GameObject("Collection Music").AddComponent<CollectionMusic>();
             music.Clip = AssetDatabase.LoadAssetAtPath<AudioClip>(MusicPath);
             music.Audio = AssetDatabase.LoadAssetAtPath<MOST_AudioManager>(AudioPath);
+            var feedback = music.gameObject.AddComponent<CollectionFeedback>();
+            feedback.Click = Sound("Click");
+            feedback.Win = Sound("Atchive");
+            feedback.Lose = Sound("Wrong");
+            feedback.Unlock = Sound("Upgrade_1");
+            feedback.Gems = Sound("Coin");
         }
 
-        /// <summary> Cubey and Splat had a "Background Music" audio action that kept playing into the hub: switch it off. </summary>
+        static AudioClip Sound(string name) => AssetDatabase.LoadAssetAtPath<AudioClip>($"{SoundsDir}/{name}.wav");
+
+        // kit sound actions that the shared music / CollectionFeedback now play for every game: left on, they double up
+        static readonly HashSet<string> KitSoundsReplaced = new() { "Background Music", "Button Click Sound", "OnLose Sound", "OnWin Sound Main" };
+
+        /// <summary> Switches off the kit's own music, click and win/lose sounds (Cubey, Splat, the block puzzles). </summary>
         static void DisableKitMusic()
         {
             foreach (var mb in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -139,15 +214,14 @@ namespace AllMightyOne.EditorTools
                 while (it.Next(true))
                 {
                     if (it.propertyType != SerializedPropertyType.ManagedReference || it.managedReferenceValue is not MOSTAction_AudioSource) continue;
-                    var clip = it.FindPropertyRelative("AudioClip");
+                    var name = it.FindPropertyRelative("ActionName");
                     var enabled = it.FindPropertyRelative("Enabled");
-                    if (clip == null || enabled == null || AssetDatabase.GetAssetPath(clip.objectReferenceValue) != MusicPath || !enabled.boolValue) continue;
+                    if (name == null || enabled == null || !KitSoundsReplaced.Contains(name.stringValue) || !enabled.boolValue) continue;
                     enabled.boolValue = false;
                     changed = true;
+                    Debug.Log($"[AMO] kit sound '{name.stringValue}' switched off on {mb.name}");
                 }
-                if (!changed) continue;
-                so.ApplyModifiedPropertiesWithoutUndo();
-                Debug.Log($"[AMO] kit music action switched off on {mb.name}");
+                if (changed) so.ApplyModifiedPropertiesWithoutUndo();
             }
         }
     }

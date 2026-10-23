@@ -37,6 +37,7 @@ namespace AllMightyOne
             _source.ignoreListenerPause = true;
             if (Audio) _source.outputAudioMixerGroup = Audio.MusicGroup;
             if (Clip) _source.Play();
+            if (TryGetComponent(out CollectionFeedback feedback)) feedback.Init(Audio);
         }
 
         void Start()

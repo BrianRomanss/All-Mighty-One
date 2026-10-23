@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections;
 using System.IO;
 using NUnit.Framework;
@@ -103,6 +104,33 @@ namespace AllMightyOne.Tests
             }
         }
 
+        /// <summary> The first-play hint a moment after the run starts, in a few games with different gestures. </summary>
+        [UnityTest]
+        public IEnumerator CaptureFirstPlayHints()
+        {
+            Directory.CreateDirectory(Dir);
+#if UNITY_EDITOR
+            UnityEditor.ShaderUtil.allowAsyncCompilation = false;
+#endif
+            foreach (var (id, path) in Thumbs.Where(t => t.Item1 is "roads" or "cubey" or "dodge" or "pistol" or "adventure"))
+            {
+                string key = "AMO_Tut_" + id;
+                bool had = PlayerPrefs.HasKey(key);
+                int value = PlayerPrefs.GetInt(key);
+                PlayerPrefs.DeleteKey(key);
+                yield return LoadScene(path);
+                yield return new WaitForSeconds(0.5f);
+                // press the menu's start button like a player (it also closes the menu); no menu: the hint is already up
+                var start = Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None)
+                    .FirstOrDefault(b => b.isActiveAndEnabled && b.name.Replace(" ", "").StartsWith("StartGame"));
+                if (start) start.onClick.Invoke();
+                yield return new WaitForSeconds(0.7f);
+                yield return CaptureView("hint_" + id);
+                if (had) PlayerPrefs.SetInt(key, value); else PlayerPrefs.DeleteKey(key);
+            }
+            PlayerPrefs.Save();
+        }
+
         /// <summary> Each game's menu as the player sees it (camera + UI), to check the hub home button placement. </summary>
         [UnityTest]
         public IEnumerator CaptureGameMenus()
@@ -115,29 +143,7 @@ namespace AllMightyOne.Tests
             {
                 yield return LoadScene(path);
                 yield return new WaitForSeconds(1.2f);
-                var cam = Camera.main;
-                var rt = new RenderTexture(540, 1170, 24);
-                var overlays = new System.Collections.Generic.List<(Canvas canvas, int order)>();
-                foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
-                    if (c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)
-                    {
-                        overlays.Add((c, c.sortingOrder));
-                        c.renderMode = RenderMode.ScreenSpaceCamera;
-                        c.worldCamera = cam;
-                        c.planeDistance = cam.nearClipPlane + 0.05f;
-                        c.sortingOrder = 1000; // an overlay draws above everything: keep transparent particles (3 Roads' clouds) under it
-                    }
-                cam.targetTexture = rt;
-                Canvas.ForceUpdateCanvases();
-                yield return null;
-                cam.Render();
-                RenderTexture.active = rt;
-                var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
-                tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-                RenderTexture.active = null;
-                cam.targetTexture = null;
-                foreach (var (c, order) in overlays) { c.renderMode = RenderMode.ScreenSpaceOverlay; c.worldCamera = null; c.sortingOrder = order; }
-                File.WriteAllBytes(Path.Combine(Dir, "menu_" + id + ".png"), tex.EncodeToPNG());
+                yield return CaptureView("menu_" + id);
             }
         }
 
@@ -164,6 +170,34 @@ namespace AllMightyOne.Tests
                 cam.targetTexture = null;
                 File.WriteAllBytes(Path.Combine(Dir, "cam_" + Path.GetFileNameWithoutExtension(path) + ".png"), tex.EncodeToPNG());
             }
+        }
+
+        // the main camera's view with every overlay canvas drawn on top, as on the device
+        static IEnumerator CaptureView(string file)
+        {
+            var cam = Camera.main;
+            var rt = new RenderTexture(540, 1170, 24);
+            var overlays = new System.Collections.Generic.List<(Canvas canvas, int order)>();
+            foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                if (c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)
+                {
+                    overlays.Add((c, c.sortingOrder));
+                    c.renderMode = RenderMode.ScreenSpaceCamera;
+                    c.worldCamera = cam;
+                    c.planeDistance = cam.nearClipPlane + 0.05f;
+                    c.sortingOrder = 1000; // an overlay draws above everything: keep transparent particles (3 Roads' clouds) under it
+                }
+            cam.targetTexture = rt;
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+            cam.Render();
+            RenderTexture.active = rt;
+            var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            RenderTexture.active = null;
+            cam.targetTexture = null;
+            foreach (var (c, order) in overlays) { c.renderMode = RenderMode.ScreenSpaceOverlay; c.worldCamera = null; c.sortingOrder = order; }
+            File.WriteAllBytes(Path.Combine(Dir, file + ".png"), tex.EncodeToPNG());
         }
 
         // renders the overlay canvas through a camera into a 1080x2340 (19.5:9) texture

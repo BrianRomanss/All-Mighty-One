@@ -62,12 +62,16 @@ namespace AllMightyOne.Hub
         public RectTransform BannerSpace;
         public RectTransform Content;
 
-        const string FreeGemsKey = "AMO_FreeGemsAt";
+        [Tooltip("Gems won in the games since the hub was last open fly into the wallet on return.")]
+        [Range(0, 16)] public int MaxFlyingGems = 8;
+
+        const string FreeGemsKey = "AMO_FreeGemsAt", SeenGemsKey = "AMO_HubGems";
 
         readonly List<HubCard> _cards = new();
         GameEntry _pendingUnlock;
         int _tab;
         float _shownGems;
+        bool _holdWallet; // gems are flying in: the wallet counts up as they land
 
         public IReadOnlyList<HubCard> Cards => _cards;
         public int CurrentTab => _tab;
@@ -99,18 +103,91 @@ namespace AllMightyOne.Hub
             if (VersionText) VersionText.text = $"v{Application.version}";
             if (NoAdsPrice) NoAdsPrice.text = PurchaseBridge.PriceLabel(PurchaseBridge.NoAdsProduct);
 
+            // back from a game with new gems: the wallet starts at what the player saw last, and gems fly in
+            int seen = PlayerPrefs.GetInt(SeenGemsKey, -1);
             _shownGems = Catalog.Gems;
+            if (seen >= 0 && seen < Catalog.Gems && GemIcon)
+            {
+                _shownGems = seen;
+                StartCoroutine(FlyGems(Catalog.Gems - seen));
+            }
+            else RememberGems();
             RefreshAll();
             AdsBridge.ShowBanner("hub");
         }
 
-        void OnDestroy() => AdsBridge.HideBanner();
+        void OnDestroy()
+        {
+            AdsBridge.HideBanner();
+            RememberGems();
+        }
+
+        void RememberGems()
+        {
+            PlayerPrefs.SetInt(SeenGemsKey, Catalog.Gems);
+            PlayerPrefs.Save();
+        }
+
+        System.Collections.IEnumerator FlyGems(int gained)
+        {
+            int count = Mathf.Clamp(gained / 5 + 2, 2, MaxFlyingGems);
+            float target = Catalog.Gems, start = _shownGems;
+            _holdWallet = true;
+            var canvas = GemIcon.GetComponentInParent<Canvas>().rootCanvas.transform;
+            var source = GemIcon.GetComponent<Image>();
+            Vector3 from = canvas.position, to = GemIcon.position;
+            yield return new WaitForSecondsRealtime(0.35f); // let the cards pop in first
+            int landed = 0;
+            for (int i = 0; i < count; i++)
+            {
+                var gem = new GameObject("Flying Gem", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                gem.transform.SetParent(canvas, false);
+                gem.sprite = source.sprite;
+                gem.preserveAspect = true;
+                gem.raycastTarget = false;
+                gem.rectTransform.sizeDelta = GemIcon.rect.size * 1.2f;
+                var spread = (Vector3)(UnityEngine.Random.insideUnitCircle * GemIcon.rect.width * 2.5f * canvas.lossyScale.x);
+                StartCoroutine(FlyOne(gem.rectTransform, from + spread, to, () =>
+                {
+                    landed++;
+                    _shownGems = Mathf.Lerp(start, target, (float)landed / count);
+                    if (landed == 1) CollectionFeedback.Play(CollectionFeedback.Cue.Gems);
+                }));
+                yield return new WaitForSecondsRealtime(0.07f);
+            }
+            while (landed < count) yield return null;
+            _holdWallet = false;
+            RememberGems();
+        }
+
+        System.Collections.IEnumerator FlyOne(RectTransform gem, Vector3 from, Vector3 to, Action landed)
+        {
+            // pop out at the scatter point, then arc into the wallet
+            for (float t = 0; t < 0.25f; t += Time.unscaledDeltaTime)
+            {
+                gem.position = from;
+                gem.localScale = Vector3.one * Mathf.SmoothStep(0f, 1.15f, t / 0.25f);
+                yield return null;
+            }
+            Vector3 control = Vector3.Lerp(from, to, 0.5f) + (from - to).magnitude * 0.25f * Vector3.left;
+            for (float t = 0; t < 0.55f; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t / 0.55f);
+                gem.position = Vector3.Lerp(Vector3.Lerp(from, control, k), Vector3.Lerp(control, to, k), k);
+                gem.localScale = Vector3.one * Mathf.Lerp(1.15f, 0.7f, k);
+                yield return null;
+            }
+            Destroy(gem.gameObject);
+            if (GemIcon) GemIcon.localScale = Vector3.one * 1.25f;
+            landed();
+        }
 
         void Update()
         {
             // the wallet rolls towards the real balance
             int gems = Catalog.Gems;
-            if (!Mathf.Approximately(_shownGems, gems))
+            if (_holdWallet) { if (GemIcon) GemIcon.localScale = Vector3.Lerp(GemIcon.localScale, Vector3.one, 10f * Time.unscaledDeltaTime); }
+            else if (!Mathf.Approximately(_shownGems, gems))
             {
                 _shownGems = Mathf.MoveTowards(_shownGems, gems, Mathf.Max(1f, Mathf.Abs(gems - _shownGems) * 6f * Time.unscaledDeltaTime));
                 if (GemIcon) GemIcon.localScale = Vector3.one * (1f + 0.15f * Mathf.Sin(Time.unscaledTime * 30f));
@@ -203,9 +280,12 @@ namespace AllMightyOne.Hub
             var g = _pendingUnlock;
             _pendingUnlock = null;
             UnlockPopup.Close();
+            CollectionFeedback.Play(CollectionFeedback.Cue.Unlock);
             RefreshAll();
             var card = _cards.Find(c => c.Entry == g);
             if (card && card.TryGetComponent(out UiPopIn pop)) pop.Replay();
+            if (card && card.Shine) card.Shine.Play();
+            RememberGems();
         }
 
         // ------------------------------------------------------------------ free gems
@@ -240,6 +320,7 @@ namespace AllMightyOne.Hub
             {
                 if (!ok || !this) return;
                 Catalog.Database.Get<IntData>(Catalog.CurrencyName).Add(FreeGemsAmount);
+                CollectionFeedback.Play(CollectionFeedback.Cue.Gems);
                 Catalog.Database.SaveToJson();
                 PlayerPrefs.SetString(FreeGemsKey, DateTime.UtcNow.Ticks.ToString());
                 PlayerPrefs.Save();

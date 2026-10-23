@@ -67,6 +67,18 @@ def key_out(img, sparkle=0.1, t0=0.06, t1=0.18):
     return out.crop(out.getbbox())
 
 
+def drop_below(img):
+    """Cuts off anything separated from the shape by an empty row near the bottom (a soft drop shadow)."""
+    a = np.asarray(img)[..., 3] > 96
+    rows = a.any(axis=1)
+    h = int(np.nonzero(rows)[0].max())  # skip the empty rows at the very bottom
+    for y in range(h, len(rows) // 2, -1):
+        if not rows[y] and rows[:y].any():
+            img = img.crop((0, 0, img.width, y))
+            break
+    return img.crop(img.getbbox())
+
+
 def fit_width(img, max_w):
     if img.width <= max_w: return img
     return img.resize((max_w, int(img.height * max_w / img.width)), Image.LANCZOS)
@@ -77,6 +89,7 @@ JOBS.update({
     "logo": ("logo.png", os.path.join(HUB, "Logo.png"), lambda im: fit_width(key_out(im), 1400)),
     "bg_hub": ("bg_hub.png", os.path.join(HUB, "Background.png"), lambda im: cover(im, 1080, 2340, bottom_trim=0.07)),
     "app_icon": ("app_icon.png", os.path.join(STORE, "app_icon.png"), lambda im: inset_square(im, 0.06, 1024)),
+    "tut_hand": ("tut_hand.png", os.path.join(HUB, "UI", "hand.png"), lambda im: fit_width(drop_below(key_out(im)), 360)),
     "feature_graphic": ("feature_graphic.png", os.path.join(STORE, "feature_graphic.png"), lambda im: cover(im, 1024, 500, bottom_trim=0.08)),
 })
 

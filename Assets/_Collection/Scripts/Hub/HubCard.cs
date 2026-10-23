@@ -21,6 +21,10 @@ namespace AllMightyOne.Hub
         public TMP_Text CostText;
 
         public GameEntry Entry { get; private set; }
+        [Tooltip("Optional light sweep across the card (unlock, new game).")]
+        public UiShine Shine;
+
+        UnityEngine.Events.UnityAction _click;
 
         public void Bind(GameEntry entry, GameCatalog catalog, System.Action<GameEntry> onClick)
         {
@@ -43,8 +47,10 @@ namespace AllMightyOne.Hub
                 Initials.text = InitialsOf(entry.DisplayName);
                 Initials.color = Color.Lerp(entry.Theme, Color.white, 0.35f);
             }
-            Button.onClick.RemoveAllListeners();
-            Button.onClick.AddListener(() => onClick(entry));
+            // only our own listener is swapped: others (the click sound) stay when the card is re-bound
+            if (_click != null) Button.onClick.RemoveListener(_click);
+            _click = () => onClick(entry);
+            Button.onClick.AddListener(_click);
             Refresh(catalog);
         }
 
