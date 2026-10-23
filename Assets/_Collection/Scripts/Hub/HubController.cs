@@ -57,6 +57,23 @@ namespace AllMightyOne.Hub
         public HubPopup NoAdsPopup;
         public TMP_Text NoAdsPrice;
 
+        [Header("Daily reward")]
+        public HubPopup DailyPopup;
+        [Tooltip("The seven day tiles, day 1 first.")]
+        public Image[] DailyTiles;
+        public TMP_Text[] DailyAmounts;
+        public GameObject[] DailyChecks;
+        public Button DailyClaimButton, DailyDoubleButton;
+        public TMP_Text DailyNextText;
+        public GameObject DailyBadge;
+        public Color DayDone = new(0.55f, 0.85f, 0.6f), DayToday = new(1f, 0.6f, 0.15f), DayLater = new(0.86f, 0.84f, 0.97f);
+
+        [Header("Daily missions")]
+        public HubPopup MissionsPopup;
+        public HubMissionRow[] MissionRows;
+        public TMP_Text MissionsTimer;
+        public GameObject MissionsBadge;
+
         [Header("Banner")]
         [Tooltip("Bottom strip kept free for the banner ad; collapsed after Remove Ads.")]
         public RectTransform BannerSpace;
@@ -72,6 +89,10 @@ namespace AllMightyOne.Hub
         int _tab;
         float _shownGems;
         bool _holdWallet; // gems are flying in: the wallet counts up as they land
+
+        // set when the hub starts a game: back in the hub, the featured card offers to continue it; a fresh app start
+        // shows the game of the day instead. The daily popup opens by itself once per app session.
+        static bool s_playedThisSession, s_dailyOffered;
 
         public IReadOnlyList<HubCard> Cards => _cards;
         public int CurrentTab => _tab;
@@ -95,6 +116,13 @@ namespace AllMightyOne.Hub
             SelectTab(0);
 
             UnlockButton.onClick.AddListener(ConfirmUnlock);
+            if (DailyClaimButton) DailyClaimButton.onClick.AddListener(() => ClaimDaily(1));
+            if (DailyDoubleButton) DailyDoubleButton.onClick.AddListener(ClaimDailyDouble);
+            foreach (var row in MissionRows ?? Array.Empty<HubMissionRow>())
+            {
+                var r = row;
+                r.ClaimButton.onClick.AddListener(() => ClaimMission(r));
+            }
             UnlockGetGemsButton.onClick.AddListener(OpenFreeGems);
             FreeGemsWatchButton.onClick.AddListener(WatchForGems);
             MusicSwitch.OnChanged.AddListener(on => SetAudio(MOST_AudioManager.Channel.Music, on));
@@ -108,12 +136,24 @@ namespace AllMightyOne.Hub
             _shownGems = Catalog.Gems;
             if (seen >= 0 && seen < Catalog.Gems && GemIcon)
             {
+                DailyMissions.GemsEarned(Catalog.Gems - seen);
                 _shownGems = seen;
                 StartCoroutine(FlyGems(Catalog.Gems - seen));
             }
             else RememberGems();
             RefreshAll();
             AdsBridge.ShowBanner("hub");
+            if (!s_dailyOffered && DailyPopup && DailyReward.Available)
+            {
+                s_dailyOffered = true;
+                StartCoroutine(OpenDailyLater());
+            }
+        }
+
+        System.Collections.IEnumerator OpenDailyLater()
+        {
+            yield return new WaitForSecondsRealtime(0.8f); // after the cards pop in
+            if (!AnyPopupOpen) OpenDaily();
         }
 
         void OnDestroy()
@@ -196,6 +236,7 @@ namespace AllMightyOne.Hub
             if (GemText) GemText.text = Mathf.RoundToInt(_shownGems).ToString("N0");
 
             if (FreeGemsPopup && FreeGemsPopup.IsOpen) UpdateFreeGems();
+            if (Time.frameCount % 15 == 0) UpdateTimers();
 
             if (Input.GetKeyDown(KeyCode.Escape)) CloseTopPopup();
         }
@@ -220,14 +261,16 @@ namespace AllMightyOne.Hub
         void RefreshAll()
         {
             foreach (var c in _cards) c.Refresh(Catalog);
-            var featured = Catalog.LastPlayed;
-            bool returning = featured != null && Catalog.IsUnlocked(featured);
-            if (!returning) featured = Array.Find(Catalog.Games, g => Catalog.IsUnlocked(g) && !GameCatalog.WasPlayed(g)) ?? Catalog.Games[0];
-            if (Featured)
+            var last = Catalog.LastPlayed;
+            bool returning = s_playedThisSession && last != null && Catalog.IsUnlocked(last);
+            var featured = returning ? last : Catalog.GameOfTheDay();
+            if (Featured && featured != null)
             {
                 Featured.Bind(featured, Catalog, OnCardClicked);
-                if (FeaturedLabel) FeaturedLabel.text = returning ? "CONTINUE PLAYING" : "TRY THIS GAME";
+                if (FeaturedLabel) FeaturedLabel.text = returning ? "CONTINUE PLAYING" : "GAME OF THE DAY";
             }
+            if (DailyBadge) DailyBadge.SetActive(DailyReward.Available);
+            if (MissionsBadge) MissionsBadge.SetActive(DailyMissions.Claimable(Catalog) > 0);
             if (NoAdsButton) NoAdsButton.SetActive(!AdsBridge.NoAds);
             if (BannerSpace) BannerSpace.gameObject.SetActive(!AdsBridge.NoAds);
             if (Content) Content.offsetMin = new Vector2(Content.offsetMin.x, AdsBridge.NoAds || !BannerSpace ? 0 : BannerSpace.rect.height);
@@ -243,6 +286,8 @@ namespace AllMightyOne.Hub
         {
             if (SceneFader.IsLoading) return;
             GameCatalog.MarkPlayed(g);
+            DailyMissions.GameStarted(g.Id);
+            s_playedThisSession = true;
             SceneFader.Load(g.SceneName);
         }
 
@@ -360,10 +405,102 @@ namespace AllMightyOne.Hub
             });
         }
 
+        HubPopup[] Popups => new[] { NoAdsPopup, SettingsPopup, FreeGemsPopup, UnlockPopup, DailyPopup, MissionsPopup };
+
+        bool AnyPopupOpen => Array.Exists(Popups, p => p && p.IsOpen);
+
         public void CloseTopPopup()
         {
-            foreach (var p in new[] { NoAdsPopup, SettingsPopup, FreeGemsPopup, UnlockPopup })
+            foreach (var p in Popups)
                 if (p && p.IsOpen) { p.Close(); return; }
+        }
+
+        // ------------------------------------------------------------------ daily reward
+
+        public void OpenDaily()
+        {
+            RefreshDaily();
+            DailyPopup.Open();
+        }
+
+        void RefreshDaily()
+        {
+            bool available = DailyReward.Available;
+            int today = DailyReward.Day;
+            for (int i = 0; i < DailyTiles.Length; i++)
+            {
+                bool done = i < today || (i == today && !available);
+                DailyTiles[i].color = done ? DayDone : i == today ? DayToday : DayLater;
+                if (i < DailyAmounts.Length) DailyAmounts[i].text = DailyReward.Amounts[i].ToString();
+                if (i < DailyChecks.Length) DailyChecks[i].SetActive(done);
+            }
+            DailyClaimButton.gameObject.SetActive(available);
+            DailyDoubleButton.gameObject.SetActive(available);
+            var amount = DailyClaimButton.GetComponentInChildren<TMP_Text>(true);
+            if (amount) amount.text = $"+{DailyReward.TodayAmount}";
+            var doubled = DailyDoubleButton.GetComponentInChildren<TMP_Text>(true);
+            if (doubled) doubled.text = $"+{DailyReward.TodayAmount * 2}";
+            DailyNextText.gameObject.SetActive(!available);
+            UpdateTimers();
+        }
+
+        public void ClaimDaily(int multiplier)
+        {
+            int gems = DailyReward.Claim(multiplier);
+            if (gems <= 0) return;
+            Catalog.Database.Get<IntData>(Catalog.CurrencyName).Add(gems);
+            Catalog.Database.SaveToJson();
+            CollectionFeedback.Play(CollectionFeedback.Cue.Unlock);
+            RefreshDaily();
+            RefreshAll();
+            RefreshUnlock();
+        }
+
+        void ClaimDailyDouble()
+        {
+            AdsBridge.ShowRewarded("daily_reward_x2", ok =>
+            {
+                if (ok && this) ClaimDaily(2);
+            });
+        }
+
+        // ------------------------------------------------------------------ daily missions
+
+        public void OpenMissions()
+        {
+            RefreshMissions();
+            MissionsPopup.Open();
+        }
+
+        void RefreshMissions()
+        {
+            var missions = DailyMissions.Today(Catalog);
+            for (int i = 0; i < MissionRows.Length; i++)
+            {
+                MissionRows[i].gameObject.SetActive(i < missions.Length);
+                if (i < missions.Length) MissionRows[i].Show(missions[i]);
+            }
+            UpdateTimers();
+        }
+
+        void ClaimMission(HubMissionRow row)
+        {
+            int gems = DailyMissions.Claim(row.Mission);
+            if (gems <= 0) return;
+            Catalog.Database.Get<IntData>(Catalog.CurrencyName).Add(gems);
+            Catalog.Database.SaveToJson();
+            CollectionFeedback.Play(CollectionFeedback.Cue.Gems);
+            RefreshMissions();
+            RefreshAll();
+            RefreshUnlock();
+        }
+
+        void UpdateTimers()
+        {
+            var left = CollectionClock.UntilTomorrow;
+            string time = $"{(int)left.TotalHours:00}:{left.Minutes:00}:{left.Seconds:00}";
+            if (DailyNextText && DailyNextText.gameObject.activeInHierarchy) DailyNextText.text = $"Come back tomorrow!\n<size=80%>Next reward in {time}</size>";
+            if (MissionsTimer && MissionsTimer.gameObject.activeInHierarchy) MissionsTimer.text = $"New missions in {time}";
         }
     }
 }

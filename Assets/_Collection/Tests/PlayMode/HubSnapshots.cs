@@ -22,6 +22,13 @@ namespace AllMightyOne.Tests
         public IEnumerator Capture()
         {
             Directory.CreateDirectory(Dir);
+            // today's reward counts as claimed for the first shots, so the daily popup doesn't open over the hub
+            const string last = "AMO_Daily_Last", streak = "AMO_Daily_Streak";
+            bool hadLast = PlayerPrefs.HasKey(last), hadStreak = PlayerPrefs.HasKey(streak);
+            int oldLast = PlayerPrefs.GetInt(last), oldStreak = PlayerPrefs.GetInt(streak);
+            int today = (int)GameType("AllMightyOne.Hub.CollectionClock").GetProperty("Today").GetValue(null);
+            PlayerPrefs.SetInt(last, today);
+            PlayerPrefs.SetInt(streak, 1);
             yield return LoadScene(Scene);
             yield return new WaitForSeconds(1.5f);
             var hub = Find("AllMightyOne.Hub.HubController");
@@ -59,6 +66,22 @@ namespace AllMightyOne.Tests
                 Call(hub, "CloseTopPopup");
                 yield return new WaitForSeconds(0.5f);
             }
+            // day 3 of a streak, ready to claim; then the missions
+            PlayerPrefs.SetInt(last, today - 1);
+            PlayerPrefs.SetInt(streak, 2);
+            Call(hub, "OpenDaily");
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("7_daily");
+            Call(hub, "CloseTopPopup");
+            yield return new WaitForSeconds(0.5f);
+            Call(hub, "OpenMissions");
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("8_missions");
+            Call(hub, "CloseTopPopup");
+
+            if (hadLast) PlayerPrefs.SetInt(last, oldLast); else PlayerPrefs.DeleteKey(last);
+            if (hadStreak) PlayerPrefs.SetInt(streak, oldStreak); else PlayerPrefs.DeleteKey(streak);
+            PlayerPrefs.Save();
             Assert.Pass($"Screens in {Path.GetFullPath(Dir)}");
         }
 

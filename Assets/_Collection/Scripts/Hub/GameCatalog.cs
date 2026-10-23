@@ -36,7 +36,8 @@ namespace AllMightyOne.Hub
         public string CurrencyName = "Currency_Gems";
         public GameEntry[] Games = new GameEntry[0];
 
-        const string UnlockedPrefix = "AMO_Unlocked_", PlayedPrefix = "AMO_Played_", LastPlayedKey = "AMO_LastPlayed";
+        const string UnlockedPrefix = "AMO_Unlocked_", PlayedPrefix = "AMO_Played_", LastPlayedKey = "AMO_LastPlayed",
+            PlaysPrefix = "AMO_Plays_", FeaturedDayKey = "AMO_Feat_Day", FeaturedKey = "AMO_Feat_Id";
 
         public GameEntry Find(string id) => Array.Find(Games, g => g.Id == id);
 
@@ -61,11 +62,35 @@ namespace AllMightyOne.Hub
         public static void MarkPlayed(GameEntry g)
         {
             PlayerPrefs.SetInt(PlayedPrefix + g.Id, 1);
+            PlayerPrefs.SetInt(PlaysPrefix + g.Id, Plays(g) + 1);
             PlayerPrefs.SetString(LastPlayedKey, g.Id);
             PlayerPrefs.Save();
         }
 
         public GameEntry LastPlayed => Find(PlayerPrefs.GetString(LastPlayedKey, ""));
+
+        public static int Plays(GameEntry g) => PlayerPrefs.GetInt(PlaysPrefix + g.Id, 0);
+
+        /// <summary>
+        /// Today's "game of the day": one of the unlocked games played the least, picked once per day so it stays put
+        /// while it is being played.
+        /// </summary>
+        public GameEntry GameOfTheDay()
+        {
+            int today = CollectionClock.Today;
+            var kept = PlayerPrefs.GetInt(FeaturedDayKey, int.MinValue) == today ? Find(PlayerPrefs.GetString(FeaturedKey, "")) : null;
+            if (kept != null && IsUnlocked(kept)) return kept;
+            var unlocked = Array.FindAll(Games, IsUnlocked);
+            if (unlocked.Length == 0) return Games.Length > 0 ? Games[0] : null;
+            int least = int.MaxValue;
+            foreach (var g in unlocked) least = Mathf.Min(least, Plays(g));
+            var pool = Array.FindAll(unlocked, g => Plays(g) == least);
+            var pick = pool[new System.Random(today * 31 + 7).Next(pool.Length)];
+            PlayerPrefs.SetInt(FeaturedDayKey, today);
+            PlayerPrefs.SetString(FeaturedKey, pick.Id);
+            PlayerPrefs.Save();
+            return pick;
+        }
 
         /// <summary> The card's progress line: "LEVEL 7", "BEST 420", "BEST 35s", or "NEW" before the first play. </summary>
         public string ProgressText(GameEntry g)

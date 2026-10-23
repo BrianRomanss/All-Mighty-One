@@ -83,6 +83,7 @@ namespace AllMightyOne.EditorTools
 
             BuildTopBar(hub, content);
             BuildLogo(content);
+            BuildDailyButtons(hub, content);
             BuildFeatured(hub, content, catalog);
             BuildTabs(hub, content);
             BuildGrid(hub, content);
@@ -98,6 +99,8 @@ namespace AllMightyOne.EditorTools
             BuildFreeGemsPopup(hub, root);
             BuildSettingsPopup(hub, root);
             BuildNoAdsPopup(hub, root);
+            BuildDailyPopup(hub, root);
+            BuildMissionsPopup(hub, root);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             SetBuildScenes();
