@@ -19,6 +19,7 @@ namespace AllMightyOne.EditorTools
         public static void BuildAll()
         {
             AddHomeButtons();
+            PolishGames();
             Run();
         }
 
@@ -36,6 +37,7 @@ namespace AllMightyOne.EditorTools
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.27f, 0.25f, 0.8f);
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+            AddMusic();
 
             var canvasGo = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasGo.layer = 5;

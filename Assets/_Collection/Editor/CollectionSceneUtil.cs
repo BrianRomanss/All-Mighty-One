@@ -159,6 +159,6 @@ namespace AllMightyOne.EditorTools
         }
 
         public static readonly Color AdButtonColor = new(1f, 0.78f, 0.15f, 1f);
-        public static readonly Color AdTextColor = Color.white;
+        public static readonly Color AdTextColor = new(0.36f, 0.17f, 0.02f, 1f); // dark brown: white was unreadable on the yellow
     }
 }

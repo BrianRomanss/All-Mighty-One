@@ -198,5 +198,33 @@ namespace AllMightyOne.Tests
             }
             finally { Restore(); }
         }
+
+        [UnityTest]
+        public IEnumerator MusicCarriesIntoGamesAndBack()
+        {
+            var type = GameType("AllMightyOne.CollectionMusic");
+            yield return LoadScene(Scene);
+            var music = Object.FindObjectsByType(type, FindObjectsSortMode.None);
+            Assert.AreEqual(1, music.Length, "hub should have one music player");
+            var source = ((Component)music[0]).GetComponent<AudioSource>();
+            Assert.IsTrue(source && source.isPlaying && source.clip, "hub music not playing");
+            Assert.IsNotNull(source.outputAudioMixerGroup, "music bypasses the mixer: the Music switch could not mute it");
+
+            // Cubey had its own copy of the loop: entering it must neither restart nor double the music
+            yield return new WaitForSeconds(0.5f);
+            float time = source.time;
+            yield return LoadScene("Assets/Most In One/Grid/Scene/Cubey.unity");
+            yield return new WaitForSeconds(0.3f);
+            music = Object.FindObjectsByType(type, FindObjectsSortMode.None);
+            Assert.AreEqual(1, music.Length, "music player duplicated in a game");
+            Assert.AreSame(source, ((Component)music[0]).GetComponent<AudioSource>(), "the hub's player did not survive the scene load");
+            Assert.IsTrue(source.isPlaying && source.time > time, "music restarted or stopped on entering a game");
+            var playing = Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None).Count(a => a.isPlaying && a.loop && a.clip == source.clip);
+            Assert.AreEqual(1, playing, "the loop is playing twice");
+
+            yield return LoadScene(Scene);
+            Assert.AreEqual(1, Object.FindObjectsByType(type, FindObjectsSortMode.None).Length, "music player duplicated back in the hub");
+            Assert.IsTrue(source.isPlaying);
+        }
     }
 }

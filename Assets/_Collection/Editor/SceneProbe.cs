@@ -22,6 +22,24 @@ namespace AllMightyOne.EditorTools
             Debug.Log("[AMO] PROBE\n" + sb);
         }
 
+        /// <summary> Lists big renderers (floors, walls) with their materials and every text with its content. Args: -probeScene path </summary>
+        public static void Looks()
+        {
+            var args = System.Environment.GetCommandLineArgs();
+            EditorSceneManager.OpenScene(Arg(args, "-probeScene"));
+            var sb = new StringBuilder();
+            foreach (var r in Resources.FindObjectsOfTypeAll<Renderer>().Where(r => r.gameObject.scene.IsValid() && r.bounds.size.magnitude > 15f))
+                sb.AppendLine($"R {Path(r.transform)} size={r.bounds.size} active={r.gameObject.activeInHierarchy} mats={string.Join(",", r.sharedMaterials.Select(m => m ? $"{m.name}({AssetDatabase.GetAssetPath(m)}) col={(m.HasProperty("_Color") ? m.color.ToString() : "-")} tex={(m.mainTexture ? m.mainTexture.name : "-")}" : "null"))}");
+            foreach (var t in Resources.FindObjectsOfTypeAll<Component>().Where(c => c && c.gameObject.scene.IsValid() && (c is UnityEngine.UI.Text || c is TMPro.TMP_Text)))
+            {
+                string txt = t is UnityEngine.UI.Text ut ? ut.text : ((TMPro.TMP_Text)t).text;
+                sb.AppendLine($"T {Path(t.transform)} '{txt?.Replace("\n", " ")}' active={t.gameObject.activeInHierarchy} {t.GetType().Name}");
+            }
+            Debug.Log("[AMO] PROBE\n" + sb);
+        }
+
+        static string Path(Transform t) => t.parent ? Path(t.parent) + "/" + t.name : t.name;
+
         /// <summary> Prints the serialized JSON of every component of the given types. Args: -probeScene path -probeTypes A|B </summary>
         public static void Components()
         {

@@ -117,14 +117,15 @@ namespace AllMightyOne.Tests
                 yield return new WaitForSeconds(1.2f);
                 var cam = Camera.main;
                 var rt = new RenderTexture(540, 1170, 24);
-                var overlays = new System.Collections.Generic.List<Canvas>();
+                var overlays = new System.Collections.Generic.List<(Canvas canvas, int order)>();
                 foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
                     if (c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)
                     {
-                        overlays.Add(c);
+                        overlays.Add((c, c.sortingOrder));
                         c.renderMode = RenderMode.ScreenSpaceCamera;
                         c.worldCamera = cam;
                         c.planeDistance = cam.nearClipPlane + 0.05f;
+                        c.sortingOrder = 1000; // an overlay draws above everything: keep transparent particles (3 Roads' clouds) under it
                     }
                 cam.targetTexture = rt;
                 Canvas.ForceUpdateCanvases();
@@ -135,7 +136,7 @@ namespace AllMightyOne.Tests
                 tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
                 RenderTexture.active = null;
                 cam.targetTexture = null;
-                foreach (var c in overlays) { c.renderMode = RenderMode.ScreenSpaceOverlay; c.worldCamera = null; }
+                foreach (var (c, order) in overlays) { c.renderMode = RenderMode.ScreenSpaceOverlay; c.worldCamera = null; c.sortingOrder = order; }
                 File.WriteAllBytes(Path.Combine(Dir, "menu_" + id + ".png"), tex.EncodeToPNG());
             }
         }

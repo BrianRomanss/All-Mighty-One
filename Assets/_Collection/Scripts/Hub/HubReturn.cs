@@ -13,6 +13,8 @@ namespace AllMightyOne.Hub
         [Tooltip("The game's menu panel: the back key only returns to the hub while it is shown.")]
         public GameObject MenuPanel;
         public Button HomeButton;
+        [Tooltip("Optional gem pill: shown and hidden together with the home button.")]
+        public GameObject GemPill;
 
         UniversalGameManager _gm;
 
@@ -27,6 +29,8 @@ namespace AllMightyOne.Hub
             // the home button only shows on the game's menu, never during a run
             if (MenuPanel && HomeButton && HomeButton.gameObject.activeSelf != MenuPanel.activeInHierarchy)
                 HomeButton.gameObject.SetActive(MenuPanel.activeInHierarchy);
+            if (MenuPanel && GemPill && GemPill.activeSelf != MenuPanel.activeInHierarchy)
+                GemPill.SetActive(MenuPanel.activeInHierarchy);
             if (!Input.GetKeyDown(KeyCode.Escape)) return;
             if (MenuPanel && !MenuPanel.activeInHierarchy) return;
             GoHome();
