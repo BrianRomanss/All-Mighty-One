@@ -25,3 +25,32 @@ framework:
 # here. `/settings --local <key>=<value>` writes there; `/settings <key>=<value>`
 # edits this file. See `.claude/docs/config-resolution.md` for the full
 # precedence order.
+
+engine:
+  name: "Unity"
+  version: "6000.0.66f2"
+  language: "C#"
+  rendering: "URP"
+  physics: "PhysX"
+
+specialists:
+  code: "unity-specialist"
+  shader: "unity-shader-specialist"
+  ui: "unity-ui-specialist"
+  additional: ["unity-dots-specialist", "unity-addressables-specialist"]
+
+naming:
+  classes: PascalCase
+  variables: camelCase
+  constants: SCREAMING_SNAKE   # UNVERIFIED — not sourceable from
+                               # docs/engine-reference/unity/; confirm before relying on it
+  signals: "PascalCase On<Event>"
+  files: PascalCase
+  scenes: PascalCase
+
+commands:
+  # TODO: build — Android player-build flags are not sourceable from docs/engine-reference/unity/;
+  #       confirm against Unity's command-line documentation, then set commands.build.
+  test: '"C:/Program Files/Unity/Hub/Editor/6000.0.66f2/Editor/Unity.exe" -batchmode -runTests -projectPath . -testPlatform EditMode -testResults test-results/editmode.xml'
+  # TODO: run — Android has no desktop exe; set a launch command once a device-run flow exists.
+  smoke: '"C:/Program Files/Unity/Hub/Editor/6000.0.66f2/Editor/Unity.exe" -batchmode -quit -projectPath . -logFile -'

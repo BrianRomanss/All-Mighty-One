@@ -2,13 +2,24 @@
 
 | Field | Value |
 |-------|-------|
-| **Engine Version** | Unity 6.3 LTS |
-| **Installed at pin time** | NOT DETERMINED — `/setup-engine` §3 probes the installed editor and records the result here. |
+| **Engine Version** | Unity 6000.0.66f2 (Unity 6.0 LTS) |
+| **Installed at pin time** | 6000.0.66f2 (probed 2026-10-26 with `Unity.exe -version` from the Hub editor directory; also 2022.3.62f2 installed) |
 | **Release Date** | December 2025 |
 | **Latest editor on the pinned line** | 6000.3.26f1 (Oct 8, 2026) |
-| **Project Pinned** | 2026-02-13 |
+| **Project Pinned** | 2026-10-26 (re-pinned from 6.3 LTS to the installed 6000.0.66f2) |
 | **Last Docs Verified** | 2026-10-17 (release timeline, newer releases, latest 6.3 LTS editor); 2026-02-13 (rest of directory) |
 | **LLM Knowledge Cutoff** | May 2025 |
+
+## Pin Note (2026-10-26)
+
+The project is pinned to the installed **6000.0.66f2 (6.0 LTS)**, not 6.3 LTS.
+The rest of this directory was written for the 6.3 pin: the 6.1–6.3 rows below,
+and "Latest editor on the pinned line" / "Release Date" above, describe 6.3, and
+their APIs may not exist in this editor. `breaking-changes.md`,
+`deprecated-apis.md` and `current-best-practices.md` have **not** been
+re-sourced for 6000.0: `NOT SOURCEABLE` here until `/setup-engine refresh` is
+run against the 6000.0 docs. This file's own timeline says 6.0 LTS support ends
+in October 2026.
 
 ## Knowledge Gap Warning
 
