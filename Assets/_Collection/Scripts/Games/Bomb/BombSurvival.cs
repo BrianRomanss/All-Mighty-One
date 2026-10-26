@@ -91,6 +91,7 @@ namespace AllMightyOne.Bomb
             _rewardClaimed = false;
             if (LastEarned > 0) Database.Get<IntData>(CurrencyName).Add(LastEarned);
             Database.SaveToJson();
+            CollectionAnalytics.RunEnd("bomb", seconds);
 
             if (RunTimeText) RunTimeText.text = $"{seconds}s";
             if (RunBestText) RunBestText.text = newBest ? "NEW BEST!" : $"BEST {Best}s";

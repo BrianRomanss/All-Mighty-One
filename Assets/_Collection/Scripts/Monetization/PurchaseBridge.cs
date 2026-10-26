@@ -36,6 +36,7 @@ namespace AllMightyOne
 
         static void Grant(string productId)
         {
+            CollectionAnalytics.Purchase(productId);
             if (productId == NoAdsProduct)
             {
                 AdsBridge.NoAds = true;

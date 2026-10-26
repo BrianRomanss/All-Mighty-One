@@ -1,15 +1,12 @@
 using System;
 using UnityEngine;
-#if GBP_ADS
-using GBP.Core.Modules;
-#endif
 
 namespace AllMightyOne
 {
     /// <summary>
     /// Single entry point for every ad call in the collection.
-    /// Placeholder until the GBP ads SDK is installed: define GBP_ADS to route calls to Ads_Core.
-    /// Without GBP_ADS, interstitials are logged and rewarded ads always succeed (for testing).
+    /// Routes to Unity Ads (UnityAdsService) once its Game ID is set.
+    /// Until then, interstitials are logged and rewarded ads always succeed (for testing).
     /// </summary>
     public static class AdsBridge
     {
@@ -30,6 +27,9 @@ namespace AllMightyOne
         public static event Action<string, bool> OnRewardedFinished;
 
         public static int SessionCount => PlayerPrefs.GetInt(SessionKey, 0);
+
+        /// <summary> Level ends reported since launch (every win / lose / run end that could show an interstitial). </summary>
+        public static int LevelEndCount => _levelEnds;
 
         /// <summary> True once the player bought "Remove Ads". Rewarded ads stay available. </summary>
         public static bool NoAds
@@ -68,39 +68,45 @@ namespace AllMightyOne
         public static void TryShowInterstitial(string placement, Action afterAd = null)
         {
             if (!CanShowInterstitial()) { afterAd?.Invoke(); return; }
+            var service = UnityAdsService.Instance;
+            if (service)
+            {
+                // nothing loaded yet: the caps are not spent, so the next level end tries again
+                if (!service.ShowInterstitial(afterAd)) return;
+            }
+            else
+            {
+                Debug.Log($"[AdsBridge] (placeholder) Interstitial '{placement}'");
+                afterAd?.Invoke();
+            }
             _lastInterstitialTime = Time.realtimeSinceStartup;
+            CollectionAnalytics.AdInterstitial(placement);
             OnInterstitialShown?.Invoke(placement);
-#if GBP_ADS
-            Ads_Core.ShowInterstitial(afterAd, placement);
-#else
-            Debug.Log($"[AdsBridge] (placeholder) Interstitial '{placement}'");
-            afterAd?.Invoke();
-#endif
         }
 
         public static bool IsRewardedReady()
         {
-#if GBP_ADS
-            return Ads_Core.IsRewardedAdReady();
-#else
-            return true;
-#endif
+            var service = UnityAdsService.Instance;
+            return !service || service.RewardedReady;
         }
 
         /// <summary> Shows a rewarded ad. onComplete(true) only when the reward must be granted. </summary>
         public static void ShowRewarded(string placement, Action<bool> onComplete)
         {
-#if GBP_ADS
-            Ads_Core.ShowRewarded(success => Finish(placement, success, onComplete), placement);
-#else
+            var service = UnityAdsService.Instance;
+            if (service)
+            {
+                service.ShowRewarded(success => Finish(placement, success, onComplete));
+                return;
+            }
             Debug.Log($"[AdsBridge] (placeholder) Rewarded '{placement}' -> granted");
             Finish(placement, true, onComplete);
-#endif
         }
 
         static void Finish(string placement, bool success, Action<bool> onComplete)
         {
             _lastRewardedTime = Time.realtimeSinceStartup;
+            CollectionAnalytics.AdRewarded(placement, success);
             OnRewardedFinished?.Invoke(placement, success);
             onComplete?.Invoke(success);
         }
@@ -112,20 +118,15 @@ namespace AllMightyOne
         {
             if (NoAds || BannerVisible) return;
             BannerVisible = true;
-#if GBP_ADS
-            Ads_Core.ShowBanner(placement);
-#else
-            Debug.Log($"[AdsBridge] (placeholder) Banner '{placement}'");
-#endif
+            if (UnityAdsService.Instance) UnityAdsService.Instance.ShowBanner();
+            else Debug.Log($"[AdsBridge] (placeholder) Banner '{placement}'");
         }
 
         public static void HideBanner()
         {
             if (!BannerVisible) return;
             BannerVisible = false;
-#if GBP_ADS
-            Ads_Core.HideBanner();
-#endif
+            if (UnityAdsService.Instance) UnityAdsService.Instance.HideBanner();
         }
     }
 }

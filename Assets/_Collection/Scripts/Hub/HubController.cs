@@ -287,6 +287,7 @@ namespace AllMightyOne.Hub
             if (SceneFader.IsLoading) return;
             GameCatalog.MarkPlayed(g);
             DailyMissions.GameStarted(g.Id);
+            CollectionAnalytics.GameStart(g.Id);
             s_playedThisSession = true;
             SceneFader.Load(g.SceneName);
         }
@@ -325,6 +326,7 @@ namespace AllMightyOne.Hub
             var g = _pendingUnlock;
             _pendingUnlock = null;
             UnlockPopup.Close();
+            CollectionAnalytics.GameUnlock(g.Id, "gems");
             CollectionFeedback.Play(CollectionFeedback.Cue.Unlock);
             RefreshAll();
             var card = _cards.Find(c => c.Entry == g);
@@ -446,8 +448,10 @@ namespace AllMightyOne.Hub
 
         public void ClaimDaily(int multiplier)
         {
+            int day = DailyReward.Day + 1;
             int gems = DailyReward.Claim(multiplier);
             if (gems <= 0) return;
+            CollectionAnalytics.DailyReward(day, multiplier > 1);
             Catalog.Database.Get<IntData>(Catalog.CurrencyName).Add(gems);
             Catalog.Database.SaveToJson();
             CollectionFeedback.Play(CollectionFeedback.Cue.Unlock);
@@ -487,6 +491,7 @@ namespace AllMightyOne.Hub
         {
             int gems = DailyMissions.Claim(row.Mission);
             if (gems <= 0) return;
+            CollectionAnalytics.MissionClaim(row.Mission.Kind.ToString());
             Catalog.Database.Get<IntData>(Catalog.CurrencyName).Add(gems);
             Catalog.Database.SaveToJson();
             CollectionFeedback.Play(CollectionFeedback.Cue.Gems);

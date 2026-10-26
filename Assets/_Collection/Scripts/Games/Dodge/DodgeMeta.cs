@@ -41,6 +41,7 @@ namespace AllMightyOne.Dodge
             _rewardClaimed = false;
             if (LastEarned > 0) Database.Get<IntData>(CurrencyName).Add(LastEarned);
             Database.SaveToJson();
+            CollectionAnalytics.RunEnd("dodge", score.Value);
 
             if (ScoreText) ScoreText.text = $"SCORE {score.Value}";
             if (BestText) BestText.text = score.Value >= score.HighestValue && score.Value > 0 ? "NEW BEST!" : $"BEST {score.HighestValue}";

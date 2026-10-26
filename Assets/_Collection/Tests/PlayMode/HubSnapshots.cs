@@ -195,11 +195,56 @@ namespace AllMightyOne.Tests
             }
         }
 
+        static readonly string StoreDir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Logs", "StoreShots"));
+
+        /// <summary>
+        /// Raw Google Play screenshots (1080x1920): the hub, then a few seconds into a run of each showcase game.
+        /// ArtPrompts/store_frames.py adds the captions.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator CaptureStoreShots()
+        {
+            Directory.CreateDirectory(StoreDir);
+#if UNITY_EDITOR
+            UnityEditor.ShaderUtil.allowAsyncCompilation = false;
+#endif
+            // the hub as a returning player sees it: no daily-reward popup on top
+            GameType("AllMightyOne.Hub.HubController").GetField("s_dailyOffered", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).SetValue(null, true);
+            yield return LoadScene(Scene);
+            yield return new WaitForSeconds(2.5f); // hub intro animations
+            yield return Shot("1_hub", 1080, 1920, StoreDir);
+
+            // seconds of play before the shot: short enough that the unsteered runners have not hit a gate yet
+            var games = new[] { ("2_squad", "squad", 3.5f), ("3_blocks", "blocks", 0.5f), ("4_cubey", "cubey", 1.5f), ("5_crowd", "crowd", 0.3f), ("6_dodge", "dodge", 3f), ("7_roads", "roads", 3f), ("8_bomb", "bomb", 3f) };
+            foreach (var (file, id, play) in games)
+            {
+                string key = "AMO_Tut_" + id;
+                bool had = PlayerPrefs.HasKey(key);
+                int value = PlayerPrefs.GetInt(key);
+                PlayerPrefs.SetInt(key, 1); // no first-play hand over the gameplay
+                yield return LoadScene(Thumbs.First(t => t.id == id).scene);
+                yield return new WaitForSeconds(0.5f);
+                var start = Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None)
+                    .FirstOrDefault(b => b.isActiveAndEnabled && b.name.Replace(" ", "").StartsWith("StartGame"));
+                if (start) start.onClick.Invoke();
+                if (id == "blocks") // a board with some pieces on it
+                {
+                    var game = Find("Solo.MOST_IN_ONE.BlockBlastGame");
+                    for (int i = 0; i < 9; i++) { Call(game, "AutoPlaceBest"); yield return new WaitForSeconds(0.35f); }
+                }
+                yield return new WaitForSeconds(play);
+                yield return CaptureView(file, 1080, 1920, StoreDir);
+                if (had) PlayerPrefs.SetInt(key, value); else PlayerPrefs.DeleteKey(key);
+            }
+            PlayerPrefs.Save();
+            Assert.Pass($"Store shots in {StoreDir}");
+        }
+
         // the main camera's view with every overlay canvas drawn on top, as on the device
-        static IEnumerator CaptureView(string file)
+        internal static IEnumerator CaptureView(string file, int w = 540, int h = 1170, string dir = null)
         {
             var cam = Camera.main;
-            var rt = new RenderTexture(540, 1170, 24);
+            var rt = new RenderTexture(w, h, 24) { antiAliasing = 4 };
             var overlays = new System.Collections.Generic.List<(Canvas canvas, int order)>();
             foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
                 if (c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)
@@ -220,11 +265,11 @@ namespace AllMightyOne.Tests
             RenderTexture.active = null;
             cam.targetTexture = null;
             foreach (var (c, order) in overlays) { c.renderMode = RenderMode.ScreenSpaceOverlay; c.worldCamera = null; c.sortingOrder = order; }
-            File.WriteAllBytes(Path.Combine(Dir, file + ".png"), tex.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(dir ?? Dir, file + ".png"), tex.EncodeToPNG());
         }
 
         // renders the overlay canvas through a camera into a 1080x2340 (19.5:9) texture
-        static IEnumerator Shot(string name, int w = 1080, int h = 2340)
+        internal static IEnumerator Shot(string name, int w = 1080, int h = 2340, string dir = null)
         {
 #if UNITY_EDITOR
             UnityEditor.ShaderUtil.allowAsyncCompilation = false; // otherwise unready shaders render as blocks / magenta
@@ -249,7 +294,7 @@ namespace AllMightyOne.Tests
             tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
             tex.Apply();
             RenderTexture.active = null;
-            File.WriteAllBytes(Path.Combine(Dir, name + ".png"), tex.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(dir ?? Dir, name + ".png"), tex.EncodeToPNG());
             canvas.renderMode = mode;
             canvas.worldCamera = null;
             Object.Destroy(cam.gameObject);
