@@ -575,7 +575,7 @@ namespace Solo.MOST_IN_ONE
             if (UISlider) UISlider.onValueChanged.AddListener(UpdateUISlider);
 
             if (MasterToggle) MasterToggle.onValueChanged.AddListener(UpdateMasterToggle);
-            if (MusicToggle) MusicToggle.onValueChanged.AddListener(UpdateMusicToggle);
+            if (MusicToggle) MusicToggle.onValueChanged.AddListener(UpdateMusicToggle); 
             if (SFXToggle) SFXToggle.onValueChanged.AddListener(UpdateSFXToggle);
             if (UIToggle) UIToggle.onValueChanged.AddListener(UpdateUIToggle);
         }
