@@ -73,9 +73,9 @@ namespace AllMightyOne.Hub
         /// <summary> Today's missions with their progress. The catalog chooses the game for "Play X". </summary>
         public static Mission[] Today(GameCatalog catalog)
         {
-            Roll();
+            int day = Roll();
             // every draw happens up front in a fixed order: the same day always gives the same missions
-            var rng = new System.Random(CollectionClock.Today * 7919);
+            var rng = new System.Random(day * 7919);
             bool playGame = rng.Next(2) == 0, finishRuns = rng.Next(2) == 0;
             int gameRoll = rng.Next(1 << 20);
             var missions = new Mission[Count];
@@ -147,15 +147,17 @@ namespace AllMightyOne.Hub
             PlayerPrefs.Save();
         }
 
-        // a new day wipes yesterday's counters, claims and chosen game
-        static void Roll()
+        // a new day wipes yesterday's counters, claims and chosen game. Only a later day rolls: setting the phone's
+        // date back keeps the current missions (and their claims) instead of handing out fresh ones. Returns the mission day.
+        static int Roll()
         {
-            int today = CollectionClock.Today;
-            if (PlayerPrefs.GetInt(DayKey, int.MinValue) == today) return;
+            int today = CollectionClock.Today, stored = PlayerPrefs.GetInt(DayKey, int.MinValue);
+            if (today <= stored) return stored;
             PlayerPrefs.SetInt(DayKey, today);
             foreach (var k in new[] { GameKey, PlayedKey, RunsKey, WinsKey, GemsKey }) PlayerPrefs.DeleteKey(k);
             for (int i = 0; i < Count; i++) PlayerPrefs.DeleteKey(ClaimedPrefix + i);
             PlayerPrefs.Save();
+            return today;
         }
     }
 }

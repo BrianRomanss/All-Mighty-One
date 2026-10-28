@@ -25,7 +25,7 @@ namespace AllMightyOne.Tests
             var keys = Ids.SelectMany(id => new[] { "AMO_Unlocked_" + id, "AMO_Played_" + id })
                 .Concat(new[] { "AMO_LastPlayed", "AMO_FreeGemsAt" }).ToArray();
             _prefs = keys.Select(k => (k, PlayerPrefs.HasKey(k), PlayerPrefs.GetInt(k, 0), PlayerPrefs.GetString(k, ""))).ToArray();
-            foreach (var id in Ids) PlayerPrefs.DeleteKey("AMO_Unlocked_" + id);
+            foreach (var id in Ids) { PlayerPrefs.DeleteKey("AMO_Unlocked_" + id); PlayerPrefs.DeleteKey("AMO_Played_" + id); } // fresh install: nothing played
             PlayerPrefs.DeleteKey("AMO_FreeGemsAt");
             yield return LoadScene(Scene);
             Bind();

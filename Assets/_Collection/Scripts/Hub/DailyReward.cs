@@ -30,7 +30,8 @@ namespace AllMightyOne.Hub
         static int Streak => PlayerPrefs.GetInt(StreakKey, 0);
         static bool StreakAlive => Last == CollectionClock.Today - 1;
 
-        public static bool Available => Last != CollectionClock.Today;
+        /// <summary> Only a later day than the last claim pays: setting the phone's date back does not. </summary>
+        public static bool Available => CollectionClock.Today > Last;
 
         /// <summary> Index (0-6) of today's reward: the one to claim, or the one already claimed today. </summary>
         public static int Day

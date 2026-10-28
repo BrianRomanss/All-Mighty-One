@@ -170,6 +170,30 @@ namespace AllMightyOne.Tests
             }
         }
 
+        /// <summary> The in-run pause button, then the pause panel, in a runner and an arena game. </summary>
+        [UnityTest]
+        public IEnumerator CapturePause()
+        {
+            Directory.CreateDirectory(Dir);
+#if UNITY_EDITOR
+            UnityEditor.ShaderUtil.allowAsyncCompilation = false;
+#endif
+            foreach (var (id, path) in new[] { ("squad", "Assets/Most In One/Runner/Scenes/EpicRunner.unity"), ("ninja", "Assets/Most In One/Controls/Scenes/Ninja.unity") })
+            {
+                yield return LoadScene(path);
+                yield return new WaitForSeconds(0.5f);
+                var start = Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None)
+                    .FirstOrDefault(b => b.isActiveAndEnabled && b.name.Replace(" ", "").StartsWith("StartGame"));
+                if (start) start.onClick.Invoke();
+                yield return new WaitForSeconds(0.8f);
+                yield return CaptureView("pause_button_" + id);
+                Click("Hub Pause Button");
+                yield return null;
+                yield return CaptureView("pause_panel_" + id);
+                Click("Hub Resume Button");
+            }
+        }
+
         /// <summary> What each game's own main camera shows (3D only), to spot broken materials. </summary>
         [UnityTest]
         public IEnumerator CaptureGameCameras()

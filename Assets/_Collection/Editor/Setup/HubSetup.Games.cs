@@ -67,6 +67,8 @@ namespace AllMightyOne.EditorTools
                 {
                     if (r.HomeButton && r.HomeButton.name == "Hub Home Button") Object.DestroyImmediate(r.HomeButton.gameObject);
                     if (r.GemPill) Object.DestroyImmediate(r.GemPill);
+                    if (r.PauseButton) Object.DestroyImmediate(r.PauseButton.gameObject);
+                    if (r.PausePanel) Object.DestroyImmediate(r.PausePanel);
                     Object.DestroyImmediate(r.gameObject);
                 }
 
@@ -101,6 +103,7 @@ namespace AllMightyOne.EditorTools
                 Debug.Log($"[AMO] {scene.name}: home button on '{canvas.name}' (ref {refSize}), menu={(menu ? menu.name : "none")}, gems={(holder.GemPill ? "ours" : "kit")}");
 
                 AddHint(scene.name, canvas.transform, refSize);
+                if (menu) AddPause(holder, canvas.transform, refSize, down); // games with a menu: runs can be paused and left
                 AddMusic();
                 EditorUtility.SetDirty(holder);
                 Save(scene);
@@ -126,6 +129,55 @@ namespace AllMightyOne.EditorTools
             if (catalog) counter.CurrencyName = catalog.CurrencyName;
             counter.Text = text;
             return pill.gameObject;
+        }
+
+        /// <summary>
+        /// Pause button in the home button's spot (shown only during a run) and the pause panel above everything:
+        /// dimmed game, a white window with RESUME and HOME. Sized from the hub's 1080-wide popups.
+        /// </summary>
+        static void AddPause(HubReturn holder, Transform canvas, Vector2 refSize, float down)
+        {
+            float k = refSize.x / 1080f;
+            float size = refSize.x * 0.11f;
+            var pause = Button3D("Hub Pause Button", canvas, new Vector2(size, size), Violet, Ui("circle"), size * 0.09f);
+            Place((RectTransform)pause.transform, new Vector2(0, 1), new Vector2(refSize.x * 0.1f, -refSize.y * down), new Vector2(size, size));
+            var face = pause.transform.Find("Face");
+            foreach (float x in new[] { -0.13f, 0.13f }) // the pause glyph: two rounded bars
+            {
+                var bar = Img("Bar", face, Ui("pill"), Color.white);
+                Place(bar.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(size * x, size * 0.02f), new Vector2(size * 0.15f, size * 0.46f));
+            }
+            pause.gameObject.SetActive(false);
+
+            var panel = Stretch(Rect("Hub Pause Panel", canvas));
+            Stretch(Img("Dim", panel, null, new Color(0.04f, 0.02f, 0.15f, 0.7f), raycast: true).rectTransform);
+            var window = Rect("Window", panel);
+            Place(window, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(820, 560) * k);
+            Stretch(Img("Shadow", window, Ui("shadow"), new Color(0, 0, 0, 0.45f)).rectTransform, -40 * k, -60 * k, -40 * k, -20 * k);
+            Stretch(Img("Base", window, Ui("rr48"), new Color(0.78f, 0.76f, 0.9f)).rectTransform, 0, -14 * k, 0, 14 * k);
+            Stretch(Img("Panel", window, Ui("rr48"), Color.white, raycast: true).rectTransform);
+            var ribbon = Img("Ribbon", window, Ui("pill"), Violet);
+            Place(ribbon.rectTransform, new Vector2(0.5f, 1), new Vector2(0, 6 * k), new Vector2(560, 124) * k);
+            Stretch(Txt("Title", ribbon.transform, "PAUSED", 58 * k, Color.white).rectTransform, 30 * k, 0, 30 * k, 6 * k);
+
+            Button Row(string name, string label, Color color, Sprite icon, float y)
+            {
+                var b = Button3D(name, window, new Vector2(600, 140) * k, color, Ui("pill"), 12 * k);
+                Place((RectTransform)b.transform, new Vector2(0.5f, 0.5f), new Vector2(0, y * k), new Vector2(600, 140) * k);
+                var f = b.transform.Find("Face");
+                var ic = Img("Icon", f, icon, Color.white);
+                ic.preserveAspect = true;
+                Place(ic.rectTransform, new Vector2(0, 0.5f), new Vector2(60 * k, 4 * k), new Vector2(76, 76) * k, new Vector2(0, 0.5f));
+                Stretch(Txt("Label", f, label, 50 * k, Color.white).rectTransform, 120 * k, 0, 40 * k, 4 * k);
+                return b;
+            }
+            holder.ResumeButton = Row("Hub Resume Button", "RESUME", Green, Ui("ic_play"), 30);
+            holder.PauseHomeButton = Row("Hub Pause Home Button", "HOME", Violet, Ui("ic_home"), -150);
+
+            panel.SetAsLastSibling(); // above the first-play hint
+            panel.gameObject.SetActive(false);
+            holder.PauseButton = pause;
+            holder.PausePanel = panel.gameObject;
         }
 
         static void AddHint(string sceneName, Transform canvas, Vector2 refSize)

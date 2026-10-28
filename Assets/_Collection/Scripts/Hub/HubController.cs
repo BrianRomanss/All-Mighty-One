@@ -342,7 +342,7 @@ namespace AllMightyOne.Hub
             {
                 long at = long.TryParse(PlayerPrefs.GetString(FreeGemsKey, "0"), out long v) ? v : 0;
                 double left = FreeGemsCooldown - (DateTime.UtcNow - new DateTime(at, DateTimeKind.Utc)).TotalSeconds;
-                return Mathf.Max(0f, (float)left);
+                return Mathf.Clamp((float)left, 0f, FreeGemsCooldown); // a claim stamped in the future (clock moved) never locks longer
             }
         }
 

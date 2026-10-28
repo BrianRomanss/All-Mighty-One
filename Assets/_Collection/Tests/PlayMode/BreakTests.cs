@@ -22,7 +22,10 @@ namespace AllMightyOne.Tests
         const string Gems = "Currency_Gems";
         const BindingFlags Static = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
 
-        static readonly string[] PrefKeys =
+        static readonly string[] GameIds = { "squad", "crowd", "brain", "pistol", "dodge", "roads", "bomb", "ninja", "blocks", "adventure", "cubey", "splat" };
+
+        // the list below plus every game's played / play-count / unlock keys (Nav tests play all games)
+        static readonly string[] PrefKeys = new[]
         {
             "AMO_Daily_Last", "AMO_Daily_Streak", "AMO_Mis_Day", "AMO_Mis_Game", "AMO_Mis_Played", "AMO_Mis_Runs", "AMO_Mis_Wins",
             "AMO_Mis_Gems", "AMO_Mis_Claimed_0", "AMO_Mis_Claimed_1", "AMO_Mis_Claimed_2", "AMO_Feat_Day", "AMO_Feat_Id", "AMO_HubGems",
@@ -30,7 +33,7 @@ namespace AllMightyOne.Tests
             "AMO_Unlocked_pistol", "AMO_Unlocked_roads", "AMO_Unlocked_splat", "AMO_Unlocked_bomb", "AMO_Unlocked_adventure", "AMO_Unlocked_ninja",
             "AMO_Tut_squad", "AMO_Tut_crowd", "AMO_Tut_brain", "AMO_Tut_pistol", "AMO_Tut_dodge", "AMO_Tut_roads", "AMO_Tut_bomb",
             "AMO_Tut_ninja", "AMO_Tut_blocks", "AMO_Tut_adventure", "AMO_Tut_cubey", "AMO_Tut_splat",
-        };
+        }.Concat(GameIds.SelectMany(id => new[] { "AMO_Played_" + id, "AMO_Plays_" + id, "AMO_Unlocked_" + id })).Distinct().ToArray();
 
         static Type HubType => GameType("AllMightyOne.Hub.HubController");
         static Type Clock => GameType("AllMightyOne.Hub.CollectionClock");
@@ -236,6 +239,33 @@ namespace AllMightyOne.Tests
             claim.onClick.Invoke();
             yield return null;
             Assert.AreEqual(40, GemCount, "The earn-gems mission paid more than once");
+        }
+
+        [UnityTest]
+        public IEnumerator Hub_TurningTheClockBackDoesNotResetMissions()
+        {
+            // Arrange: the earn-gems mission finished and claimed on May 20
+            SetNow(new DateTime(2026, 5, 20, 10, 0, 0));
+            PlayerPrefs.DeleteKey("AMO_Mis_Day");
+            Call(HubController, "OpenMissions"); // rolls to May 20
+            PlayerPrefs.SetInt("AMO_Mis_Gems", 500);
+            Call(HubController, "OpenMissions");
+            yield return null;
+            GemCount = 0;
+            var claim = Get<UnityEngine.UI.Button>(((Array)Get<object>(HubController, "MissionRows")).GetValue(2), "ClaimButton");
+            claim.onClick.Invoke();
+            Assert.AreEqual(40, GemCount, "setup: the mission should pay once");
+
+            // Act: the player sets the date back a day and earns the gems again
+            SetNow(new DateTime(2026, 5, 19, 10, 0, 0));
+            Call(HubController, "OpenMissions");
+            PlayerPrefs.SetInt("AMO_Mis_Gems", 500);
+            Call(HubController, "OpenMissions");
+            yield return null;
+            claim.onClick.Invoke();
+
+            // Assert
+            Assert.AreEqual(40, GemCount, $"Moving the date back paid the mission again ({GemCount - 40} extra gems)");
         }
 
         [UnityTest]
@@ -462,6 +492,29 @@ namespace AllMightyOne.Tests
             bool pause = Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None)
                 .Any(b => b.isActiveAndEnabled && b.name.IndexOf("Pause", StringComparison.OrdinalIgnoreCase) >= 0);
             Assert.IsTrue(homeShown || pause, "During a run there is no home or pause button, and the back key is ignored");
+        }
+
+        [UnityTest]
+        public IEnumerator Nav_PauseFreezesTheRunAndHomeLeavesUnfrozen()
+        {
+            // Arrange: a squad run in progress
+            yield return OpenGame("Assets/Most In One/Runner/Scenes/EpicRunner.unity");
+            Start();
+            yield return new WaitForSeconds(0.6f);
+
+            // Act + Assert: pause, resume, pause again, then leave from the panel
+            Click("Hub Pause Button");
+            Assert.AreEqual(0f, Time.timeScale, "Pause did not freeze the run");
+            Assert.IsTrue(FindObject("Hub Pause Panel").activeInHierarchy, "No pause panel");
+            Assert.IsFalse(FindObject("Hub Pause Button").activeInHierarchy, "Pause button still shown while paused");
+            Click("Hub Resume Button");
+            Assert.AreEqual(1f, Time.timeScale, "Resume left the run frozen");
+            Assert.IsFalse(FindObject("Hub Pause Panel").activeInHierarchy);
+            yield return null;
+            Click("Hub Pause Button");
+            Click("Hub Pause Home Button");
+            yield return WaitUntil(() => SceneManager.GetActiveScene().name == "Hub" && !SceneFaderBusy, 8f, "the hub from the pause panel");
+            Assert.AreEqual(1f, Time.timeScale, "The hub started frozen");
         }
 
         // ================================================================ saves

@@ -61,6 +61,7 @@ namespace Solo.MOST_IN_ONE
         static string BaseDir => Path.Combine(Application.persistentDataPath, "MOST");
         string SavePath => Path.Combine(BaseDir, $"{SanitizeKey(Key)}.json");
         string TmpPath => SavePath + ".tmp";
+        string BakPath => SavePath + ".bak"; // last good save, read when the main file is damaged
 
         string SchemaPath => Path.Combine(BaseDir, $"user_db_{SanitizeKey(Key)}.json");
         string SchemaTmp => SchemaPath + ".tmp";
@@ -73,6 +74,7 @@ namespace Solo.MOST_IN_ONE
         }
 
         string ValuesPrefsKey => $"MOST_{SanitizeKey(Key)}_VALUES";
+        string ValuesBackupKey => ValuesPrefsKey + "_BAK";
         string SchemaPrefsKey => $"MOST_{SanitizeKey(Key)}_SCHEMA";
 
         bool HasValuesStore() => UseInternalStorage ? PlayerPrefs.HasKey(ValuesPrefsKey) : File.Exists(SavePath);
@@ -316,6 +318,7 @@ namespace Solo.MOST_IN_ONE
                 if (UseInternalStorage)
                 {
                     PlayerPrefs.SetString(ValuesPrefsKey, json);
+                    PlayerPrefs.SetString(ValuesBackupKey, json);
                     PlayerPrefs.Save();
                 }
                 else
@@ -324,6 +327,7 @@ namespace Solo.MOST_IN_ONE
                     File.WriteAllText(TmpPath, json);
                     if (File.Exists(SavePath)) File.Replace(TmpPath, SavePath, null);
                     else File.Move(TmpPath, SavePath);
+                    File.WriteAllText(BakPath, json); // written after the main file: a cut-off write damages only one of them
                 }
             }
             catch (Exception ex)
@@ -339,12 +343,19 @@ namespace Solo.MOST_IN_ONE
             {
                 SeedFromInitialValues();
 
-                string json = UseInternalStorage
-                    ? PlayerPrefs.GetString(ValuesPrefsKey, string.Empty)
-                    : File.ReadAllText(SavePath);
-
-                var save = string.IsNullOrEmpty(json) ? null : JsonUtility.FromJson<SaveFile>(json);
-                if (save == null) return;
+                // a damaged main save (phone died mid-write, storage error) falls back to the backup copy
+                var save = ReadSave(UseInternalStorage ? ValuesPrefsKey : SavePath, out bool mainExists);
+                if (save == null)
+                {
+                    save = ReadSave(UseInternalStorage ? ValuesBackupKey : BakPath, out _);
+                    if (save != null) Debug.LogWarning($"[MOST] Save for '{Key}' was damaged; restored from the backup.");
+                    else
+                    {
+                        if (mainExists) Debug.LogWarning($"[MOST] Save for '{Key}' was damaged and has no usable backup. Using InitialValue baseline.");
+                        initialized = false; // first run, or nothing readable: the seeded initial values stay
+                        return;
+                    }
+                }
 
                 foreach (var it in save.ints)
                     if (GetById(it.id) is IntData i)
@@ -374,6 +385,27 @@ namespace Solo.MOST_IN_ONE
             {
                 Debug.LogWarning($"[MOST] Load failed for '{Key}': {ex.Message}. Using InitialValue baseline.");
                 initialized = false;
+            }
+        }
+
+        /// <summary> Parses one stored copy (a PlayerPrefs key or a file path); null when it is missing or damaged. </summary>
+        SaveFile ReadSave(string where, out bool exists)
+        {
+            exists = UseInternalStorage ? PlayerPrefs.HasKey(where) : File.Exists(where);
+            if (!exists) return null;
+            try
+            {
+                string json = UseInternalStorage ? PlayerPrefs.GetString(where, string.Empty) : File.ReadAllText(where);
+                if (string.IsNullOrWhiteSpace(json)) return null;
+                var save = JsonUtility.FromJson<SaveFile>(json);
+                // a cut-off file normally fails to parse; one that parses to nothing at all is not a save either
+                if (save == null) return null;
+                int count = (save.ints?.Count ?? 0) + (save.floats?.Count ?? 0) + (save.strings?.Count ?? 0) + (save.bools?.Count ?? 0);
+                return count > 0 ? save : null;
+            }
+            catch (Exception)
+            {
+                return null;
             }
         }
 
@@ -756,12 +788,12 @@ namespace Solo.MOST_IN_ONE
             {
                 if (UseInternalStorage)
                 {
-                    PlayerPrefs.DeleteKey(ValuesPrefsKey);
+                    PlayerPrefs.DeleteKey(ValuesPrefsKey); PlayerPrefs.DeleteKey(ValuesBackupKey);
                     PlayerPrefs.Save();
                 }
                 else
                 {
-                    if (File.Exists(SavePath)) File.Delete(SavePath);
+                    if (File.Exists(SavePath)) File.Delete(SavePath); if (File.Exists(BakPath)) File.Delete(BakPath);
                 }
                 initialized = false;
             }
@@ -775,12 +807,12 @@ namespace Solo.MOST_IN_ONE
             {
                 if (UseInternalStorage)
                 {
-                    PlayerPrefs.DeleteKey(ValuesPrefsKey);
+                    PlayerPrefs.DeleteKey(ValuesPrefsKey); PlayerPrefs.DeleteKey(ValuesBackupKey);
                     PlayerPrefs.Save();
                 }
                 else
                 {
-                    if (File.Exists(SavePath)) File.Delete(SavePath);
+                    if (File.Exists(SavePath)) File.Delete(SavePath); if (File.Exists(BakPath)) File.Delete(BakPath);
                 }
                 initialized = false;
                 Debug.Log($"[MOST] Deleted values save for '{Key}'. Next init uses InitialValue.");
@@ -876,9 +908,12 @@ namespace Solo.MOST_IN_ONE
         public int Set(int v) { Value = Clamp(v); if (Value > HighestValue) HighestValue = Value; return Value; }
         public int Increment() => Add(1);
         public int Decrement() => Subtract(1);
-        public int Add(int d) { if (d < 0) return Subtract(-d); Value = Clamp(Value + d); if (Value > HighestValue) HighestValue = Value; return Value; }
-        public int Subtract(int d) { if (d < 0) return Add(-d); Value = Clamp(Value - d);return Value; }
-        public bool TrySubtract(int a) { if (a < 0) { Add(-a); return true; } int min = EnableMin ? MinValue : 0; int res = Value - a; if (res < min) return false; Value = Clamp(res); return true; }
+        // sums go through long and stop at the int range: a huge wallet must not wrap around to a negative (or clamped 0) value
+        static int Saturate(long v) => v > int.MaxValue ? int.MaxValue : v < int.MinValue ? int.MinValue : (int)v;
+
+        public int Add(int d) { Value = Clamp(Saturate((long)Value + d)); if (Value > HighestValue) HighestValue = Value; return Value; }
+        public int Subtract(int d) { Value = Clamp(Saturate((long)Value - d)); if (Value > HighestValue) HighestValue = Value; return Value; }
+        public bool TrySubtract(int a) { if (a < 0) { Subtract(a); return true; } int min = EnableMin ? MinValue : 0; long res = (long)Value - a; if (res < min) return false; Value = Clamp(Saturate(res)); return true; }
         public bool SetIfGreater(int candidate) { int c = Clamp(candidate); if (c > Value) { Value = c; if (Value > HighestValue) HighestValue = Value;return true; } return false; }
         public void ClampMinZero() { if (Value < 0) Value = 0;  }
     }
