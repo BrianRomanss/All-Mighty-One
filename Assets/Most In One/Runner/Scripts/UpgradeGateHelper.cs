@@ -11,20 +11,20 @@ namespace Solo.MOST_IN_ONE
         public GameObject UpgradeAfterMaxLevel;
         public GameObject[] Upgrades;
 
-        GameObject _character;
+        CharacterControl_ShootRunner _character;
         bool _autoDetect = true;
         int _currentLevel;
 
         void Start()
         {
-            _character = GameObject.Find(CharacterName);
+            _character = GameObject.Find(CharacterName).GetComponent<CharacterControl_ShootRunner>(); // looked up once, not every frame
         }
 
         void Update()
         {
-            if (_autoDetect && _currentLevel != _character.GetComponent<CharacterControl_ShootRunner>().CurrentLevel)
+            if (_autoDetect && _currentLevel != _character.CurrentLevel)
             {
-                _currentLevel = _character.GetComponent<CharacterControl_ShootRunner>().CurrentLevel;
+                _currentLevel = _character.CurrentLevel;
                 foreach (GameObject up in Upgrades) up.SetActive(false);
                 if (_currentLevel > Upgrades.Length)
                 {

@@ -128,6 +128,7 @@ namespace Solo.MOST_IN_ONE
         float _camXSmoothed;       // smoothed X center (based on active lanes)
         float _camXVel;            // velocity for SmoothDamp on X
         float _scoreAsFloat;
+        int _writtenScore = -1;
         void Awake()
         {
             // Lanes
@@ -189,7 +190,11 @@ namespace Solo.MOST_IN_ONE
             // Score
             _scoreAsFloat += ScoreRate * Time.deltaTime * Mathf.Max(1, Mathf.Pow(ActiveLaneCount(), 2)) * (AffectedByForwardSpeed? ForwardSpeed:1);
             Score = (int)_scoreAsFloat;
-            DatabaseHolder.Get<IntData>(DataName).Set(Score);
+            if (Score != _writtenScore) // the database is written (and marked for saving) only when the score moves
+            {
+                _writtenScore = Score;
+                DatabaseHolder.Get<IntData>(DataName).Set(Score);
+            }
 
             // Characters sync Z
             for (int i = 0; i < Characters.Count; i++)

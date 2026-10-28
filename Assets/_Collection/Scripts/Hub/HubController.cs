@@ -83,6 +83,7 @@ namespace AllMightyOne.Hub
         GameEntry _pendingUnlock;
         int _tab;
         float _shownGems;
+        int _gemTextValue = -1;
         bool _holdWallet; // gems are flying in: the wallet counts up as they land
 
         // set when the hub starts a game: back in the hub, the featured card offers to continue it; a fresh app start
@@ -227,7 +228,8 @@ namespace AllMightyOne.Hub
                 if (GemIcon) GemIcon.localScale = Vector3.one * (1f + 0.15f * Mathf.Sin(Time.unscaledTime * 30f));
             }
             else if (GemIcon) GemIcon.localScale = Vector3.one;
-            if (GemText) GemText.text = Mathf.RoundToInt(_shownGems).ToString("N0");
+            int shown = Mathf.RoundToInt(_shownGems);
+            if (GemText && shown != _gemTextValue) { _gemTextValue = shown; GemText.text = shown.ToString("N0"); } // no string per frame
 
             if (FreeGemsPopup && FreeGemsPopup.IsOpen) UpdateFreeGems();
             if (Time.frameCount % 15 == 0) UpdateTimers();

@@ -58,6 +58,8 @@ namespace Solo.MOST_IN_ONE
         public float AddedIntValue;
 
         ExtraInfoDataType _type;
+        double _lastShown;
+        bool _hasShown; // numeric values are only formatted again when they change (no new string every frame)
 
         public override void OnAwake() // As Awake function
         {
@@ -83,6 +85,7 @@ namespace Solo.MOST_IN_ONE
         {
             base.OnLateUpdate();
             if (!IsPlaying) return;
+            if (Unchanged()) return;
 
             string val;
             if (ExtraInfo == ExtraInfoDataType.None)
@@ -119,12 +122,25 @@ namespace Solo.MOST_IN_ONE
             if (StaticData) IsPlaying = false;
         }
 
+        bool Unchanged() // true when an int / float entry still holds the value already on screen
+        {
+            double v;
+            var data = DatabaseHolder.GetByName(DataName);
+            if (data is IntData i) v = ShowHighestValue ? i.HighestValue : i.Value;
+            else if (data is FloatData f) v = ShowHighestValue ? f.HighestValue : f.Value;
+            else return false; // strings and bools: refresh every frame as before
+            if (_hasShown && v == _lastShown) return true;
+            _lastShown = v;
+            _hasShown = true;
+            return false;
+        }
+
         public override void OnUpdate()  // Called each frame as Update function
         {
             base.OnUpdate();
         }
 
-        protected override void Play() { IsPlaying = true; }
+        protected override void Play() { IsPlaying = true; _hasShown = false; }
         protected override void Stop() { IsPlaying = false; }
 
         public override void OnDestroy() // Called when this Owner behavior got destroyed

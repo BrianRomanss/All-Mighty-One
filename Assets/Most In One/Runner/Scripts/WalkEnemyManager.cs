@@ -21,7 +21,10 @@ namespace Solo.MOST_IN_ONE
         public string RunForward_bool, Defeated_bool;
 
         Transform _charFollow;
+        Collider _charFollowCol;
         bool _followTag;
+        float _nextSearch; // with no live target, the tag search runs a few times a second instead of every frame
+        const float SearchInterval = 0.25f;
         void Start()
         {
             if (!RoatateModel) RoatateModel = transform;
@@ -42,27 +45,13 @@ namespace Solo.MOST_IN_ONE
                 }
                 else
                 {
-                    if (_charFollow && _charFollow.gameObject.GetComponent<Collider>().enabled)
+                    if (_charFollow && _charFollowCol && _charFollowCol.enabled)
                     {
                         Vector3 target = -transform.position + _charFollow.position; target.y = 0;
                         RoatateModel.rotation = Quaternion.LookRotation(target);
                         transform.position += Mathf.Abs(MoveSpeed) * Time.deltaTime * RoatateModel.TransformDirection(Vector3.forward);
                     }
-                    else
-                    {
-                        List<GameObject> chars = GameObject.FindGameObjectsWithTag(FollowedTag).ToList();
-                        chars.RemoveAll(item => item.GetComponent<Collider>().enabled == false);
-                        if (chars.Count > 0)
-                        {
-                            _charFollow = chars[0].transform;
-                            AnimationController.SetBool(RunForward_bool, true);
-                        }
-                        else
-                        {
-                            _charFollow = null;
-                            AnimationController.SetBool(RunForward_bool, false);
-                        }
-                    }
+                    else if (!ReferenceEquals(_charFollow, null) || Time.time >= _nextSearch) FindTarget(); // target just lost: look again at once
                 }
             }
         }
@@ -70,18 +59,22 @@ namespace Solo.MOST_IN_ONE
         public void StartFollow()
         {
             _followTag = true;
-            List<GameObject> chars = GameObject.FindGameObjectsWithTag(FollowedTag).ToList();
-            chars.RemoveAll(item => item.GetComponent<Collider>().enabled == false);
-            if (chars.Count > 0)
+            FindTarget();
+        }
+
+        void FindTarget() // first object with the followed tag whose collider is still enabled
+        {
+            _nextSearch = Time.time + SearchInterval;
+            _charFollow = null;
+            _charFollowCol = null;
+            foreach (var go in GameObject.FindGameObjectsWithTag(FollowedTag))
             {
-                _charFollow = chars[0].transform;
-                AnimationController.SetBool(RunForward_bool, true);
+                if (!go.TryGetComponent(out Collider col) || !col.enabled) continue;
+                _charFollow = go.transform;
+                _charFollowCol = col;
+                break;
             }
-            else
-            {
-                _charFollow = null;
-                AnimationController.SetBool(RunForward_bool, false);
-            }
+            AnimationController.SetBool(RunForward_bool, _charFollow != null);
         }
 
         private void OnTriggerEnter(Collider other)

@@ -15,7 +15,7 @@ namespace Solo.MOST_IN_ONE
 
         GameObject _target;
         bool _attack;
-        int _numOfChildren;
+        int _numOfChildren, _shownCount = -1;
 
         void Start()
         {
@@ -47,7 +47,11 @@ namespace Solo.MOST_IN_ONE
                     Vector3 tpos = _target.transform.position; tpos.y = transform.GetChild(i).transform.position.y; // Ignore Y Axis
                     transform.GetChild(i).transform.position = Vector3.MoveTowards(transform.GetChild(i).transform.position, tpos, Time.deltaTime * 1.75f);
                 }
-                CurrentChildCount.text = transform.childCount.ToString();
+                if (transform.childCount != _shownCount) // new string only when the count drops
+                {
+                    _shownCount = transform.childCount;
+                    CurrentChildCount.text = _shownCount.ToString();
+                }
             }
             else if (transform.childCount == 0) // if all red childs defeated
             {

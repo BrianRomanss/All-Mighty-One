@@ -28,17 +28,26 @@ namespace Solo.MOST_IN_ONE
         [SerializeReference] private List<MData> entries = new();
         public IReadOnlyList<MData> Entries => entries;
 
-        public MData GetById(int id) =>
-            entries?.FirstOrDefault(e => e != null && e.id == id);
+        // plain loops, no LINQ: HUD labels and wallets call these every frame, and LINQ allocates on each call
+        public MData GetById(int id) => Get<MData>(id);
 
-        public MData GetByName(string name) =>
-            entries?.FirstOrDefault(e => e != null && string.Equals(e.DataName, name, StringComparison.Ordinal));
+        public MData GetByName(string name) => Get<MData>(name);
 
-        public T Get<T>(int id) where T : MData =>
-            entries?.OfType<T>().FirstOrDefault(e => e.id == id);
+        public T Get<T>(int id) where T : MData
+        {
+            if (entries == null) return null;
+            for (int i = 0; i < entries.Count; i++)
+                if (entries[i] is T e && e.id == id) return e;
+            return null;
+        }
 
-        public T Get<T>(string name) where T : MData =>
-            entries?.OfType<T>().FirstOrDefault(e => string.Equals(e.DataName, name, StringComparison.Ordinal));
+        public T Get<T>(string name) where T : MData
+        {
+            if (entries == null) return null;
+            for (int i = 0; i < entries.Count; i++)
+                if (entries[i] is T e && string.Equals(e.DataName, name, StringComparison.Ordinal)) return e;
+            return null;
+        }
 
         public bool TryGet<T>(int id, out T result) where T : MData
         {
