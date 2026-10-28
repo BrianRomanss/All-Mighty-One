@@ -40,7 +40,6 @@ namespace AllMightyOne
 
         public static void AdInterstitial(string placement) => Log("ad_interstitial", ("placement", placement));
         public static void AdRewarded(string placement, bool rewarded) => Log("ad_rewarded", ("placement", placement), ("rewarded", rewarded));
-        public static void Purchase(string productId) => Log("purchase", ("product_id", productId));
         public static void DailyReward(int day, bool doubled) => Log("daily_reward", ("day", day), ("doubled", doubled));
         public static void MissionClaim(string mission) => Log("mission_claim", ("mission", mission));
 

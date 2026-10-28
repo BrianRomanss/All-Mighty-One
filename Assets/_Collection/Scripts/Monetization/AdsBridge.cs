@@ -16,7 +16,6 @@ namespace AllMightyOne
         public static float FirstSessionGraceSeconds = 180f;
         public static float GraceAfterRewardedSeconds = 30f;
 
-        const string NoAdsKey = "AMO_NoAds";
         const string SessionKey = "AMO_SessionCount";
 
         static int _levelEnds;
@@ -30,13 +29,6 @@ namespace AllMightyOne
 
         /// <summary> Level ends reported since launch (every win / lose / run end that could show an interstitial). </summary>
         public static int LevelEndCount => _levelEnds;
-
-        /// <summary> True once the player bought "Remove Ads". Rewarded ads stay available. </summary>
-        public static bool NoAds
-        {
-            get => PlayerPrefs.GetInt(NoAdsKey, 0) == 1;
-            set { PlayerPrefs.SetInt(NoAdsKey, value ? 1 : 0); PlayerPrefs.Save(); }
-        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Init()
@@ -57,7 +49,6 @@ namespace AllMightyOne
 
         public static bool CanShowInterstitial()
         {
-            if (NoAds) return false;
             float now = Time.realtimeSinceStartup;
             if (SessionCount <= 1 && now < FirstSessionGraceSeconds) return false;
             if (now - _lastInterstitialTime < MinSecondsBetweenInterstitials) return false;
@@ -116,7 +107,7 @@ namespace AllMightyOne
 
         public static void ShowBanner(string placement = "banner")
         {
-            if (NoAds || BannerVisible) return;
+            if (BannerVisible) return;
             BannerVisible = true;
             if (UnityAdsService.Instance) UnityAdsService.Instance.ShowBanner();
             else Debug.Log($"[AdsBridge] (placeholder) Banner '{placement}'");

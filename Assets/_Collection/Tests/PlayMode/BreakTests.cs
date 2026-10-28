@@ -26,7 +26,7 @@ namespace AllMightyOne.Tests
         {
             "AMO_Daily_Last", "AMO_Daily_Streak", "AMO_Mis_Day", "AMO_Mis_Game", "AMO_Mis_Played", "AMO_Mis_Runs", "AMO_Mis_Wins",
             "AMO_Mis_Gems", "AMO_Mis_Claimed_0", "AMO_Mis_Claimed_1", "AMO_Mis_Claimed_2", "AMO_Feat_Day", "AMO_Feat_Id", "AMO_HubGems",
-            "AMO_FreeGemsAt", "AMO_LastPlayed", "AMO_NoAds", "AMO_Ninja_Level",
+            "AMO_FreeGemsAt", "AMO_LastPlayed", "AMO_Ninja_Level",
             "AMO_Unlocked_pistol", "AMO_Unlocked_roads", "AMO_Unlocked_splat", "AMO_Unlocked_bomb", "AMO_Unlocked_adventure", "AMO_Unlocked_ninja",
             "AMO_Tut_squad", "AMO_Tut_crowd", "AMO_Tut_brain", "AMO_Tut_pistol", "AMO_Tut_dodge", "AMO_Tut_roads", "AMO_Tut_bomb",
             "AMO_Tut_ninja", "AMO_Tut_blocks", "AMO_Tut_adventure", "AMO_Tut_cubey", "AMO_Tut_splat",
@@ -50,7 +50,6 @@ namespace AllMightyOne.Tests
         {
             _prefs = PrefKeys.Select(k => (k, PlayerPrefs.HasKey(k), PlayerPrefs.GetInt(k, 0), PlayerPrefs.GetString(k, ""))).ToArray();
             foreach (var k in PrefKeys.Where(k => k.StartsWith("AMO_Tut_"))) PlayerPrefs.SetInt(k, 1); // no hint hands in the way
-            PlayerPrefs.SetInt("AMO_NoAds", 0);
             HubType.GetField("s_dailyOffered", Static).SetValue(null, true);
             yield return LoadScene(Hub);
             _db = Get<object>(Catalog, "Database");

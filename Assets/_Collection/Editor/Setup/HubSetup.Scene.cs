@@ -88,7 +88,7 @@ namespace AllMightyOne.EditorTools
             BuildTabs(hub, content);
             BuildGrid(hub, content);
 
-            // banner strip (hidden after Remove Ads)
+            // banner strip
             var banner = Img("Banner Space", safe, null, new Color(0.08f, 0.05f, 0.25f, 0.35f));
             Place(banner.rectTransform, new Vector2(0.5f, 0), Vector2.zero, new Vector2(0, 150), new Vector2(0.5f, 0));
             banner.rectTransform.anchorMin = new Vector2(0, 0); banner.rectTransform.anchorMax = new Vector2(1, 0);
@@ -98,7 +98,6 @@ namespace AllMightyOne.EditorTools
             BuildUnlockPopup(hub, root);
             BuildFreeGemsPopup(hub, root);
             BuildSettingsPopup(hub, root);
-            BuildNoAdsPopup(hub, root);
             BuildDailyPopup(hub, root);
             BuildMissionsPopup(hub, root);
 
@@ -135,12 +134,6 @@ namespace AllMightyOne.EditorTools
             Place((RectTransform)settings.transform, new Vector2(1, 0.5f), new Vector2(-60, 6), new Vector2(112, 112), new Vector2(1, 0.5f));
             Icon(settings, Kit("Settings_Small"), 0.56f);
             AddListener(settings.onClick, hub, nameof(HubController.OpenSettings));
-
-            var noAds = Button3D("No Ads Button", bar, new Vector2(112, 112), Red, Ui("circle"), 10);
-            Place((RectTransform)noAds.transform, new Vector2(1, 0.5f), new Vector2(-196, 6), new Vector2(112, 112), new Vector2(1, 0.5f));
-            Icon(noAds, Ui("ic_noads"), 0.62f);
-            AddListener(noAds.onClick, hub, nameof(HubController.OpenNoAds));
-            hub.NoAdsButton = noAds.gameObject;
         }
 
         static Image Icon(Button b, Sprite sprite, float scale)
@@ -483,12 +476,8 @@ namespace AllMightyOne.EditorTools
             hub.SoundSwitch = SettingRow(w, "SOUND", Kit("Sound_On"), -310);
             hub.VibrationSwitch = SettingRow(w, "VIBRATION", Kit("Vibro_On"), -460);
 
-            var restore = Button3D("Restore Button", w, new Vector2(370, 110), new Color(0.25f, 0.6f, 1f), Ui("pill"), 10);
-            Place((RectTransform)restore.transform, new Vector2(0.5f, 0), new Vector2(-200, 120), new Vector2(370, 110));
-            Stretch(Txt("Label", restore.transform.Find("Face"), "RESTORE", 40, Color.white).rectTransform, 20, 0, 20, 4);
-            AddListener(restore.onClick, hub, nameof(HubController.RestorePurchases));
             var privacy = Button3D("Privacy Button", w, new Vector2(370, 110), new Color(0.25f, 0.6f, 1f), Ui("pill"), 10);
-            Place((RectTransform)privacy.transform, new Vector2(0.5f, 0), new Vector2(200, 120), new Vector2(370, 110));
+            Place((RectTransform)privacy.transform, new Vector2(0.5f, 0), new Vector2(0, 120), new Vector2(370, 110));
             Stretch(Txt("Label", privacy.transform.Find("Face"), "PRIVACY", 40, Color.white).rectTransform, 20, 0, 20, 4);
             AddListener(privacy.onClick, hub, nameof(HubController.OpenPrivacy));
             hub.VersionText = Txt("Version", w, "v1.0", 30, new Color(Ink.r, Ink.g, Ink.b, 0.45f), outline: false);
@@ -520,30 +509,6 @@ namespace AllMightyOne.EditorTools
             s.OnColor = Green;
             s.Travel = 48;
             return s;
-        }
-
-        static void BuildNoAdsPopup(HubController hub, Transform root)
-        {
-            var (popup, w) = Popup(root, "No Ads Popup", "NO ADS", Red, 860, hub);
-            hub.NoAdsPopup = popup;
-            var rays = Img("Rays", w, Ui("rays"), new Color(1f, 0.45f, 0.5f, 0.8f));
-            Place(rays.rectTransform, new Vector2(0.5f, 1), new Vector2(0, -280), new Vector2(480, 480));
-            rays.gameObject.AddComponent<UiSpin>();
-            var badge = Img("Badge", w, Ui("circle"), Red);
-            Place(badge.rectTransform, new Vector2(0.5f, 1), new Vector2(0, -280), new Vector2(220, 220));
-            var ic = Img("Icon", badge.transform, Ui("ic_noads"), Color.white);
-            Place(ic.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150, 150));
-            var msg = Txt("Message", w, "Play without interruptions!\n<size=80%>Bonus videos stay optional.</size>", 44, Ink, outline: false);
-            msg.textWrappingMode = TextWrappingModes.Normal;
-            Place(msg.rectTransform, new Vector2(0.5f, 1), new Vector2(0, -440), new Vector2(820, 140), new Vector2(0.5f, 1));
-            var buy = Button3D("Buy Button", w, new Vector2(600, 140), Green, Ui("pill"), 12);
-            Place((RectTransform)buy.transform, new Vector2(0.5f, 0), new Vector2(0, 90), new Vector2(600, 140));
-            var bf = buy.transform.Find("Face");
-            var bl = Txt("Label", bf, "REMOVE ADS", 46, Color.white, align: TextAlignmentOptions.Left);
-            Place(bl.rectTransform, new Vector2(0, 0.5f), new Vector2(40, 4), new Vector2(330, 100), new Vector2(0, 0.5f));
-            hub.NoAdsPrice = Txt("Price", bf, "$2.99", 50, new Color(1f, 0.95f, 0.5f));
-            Place(hub.NoAdsPrice.rectTransform, new Vector2(1, 0.5f), new Vector2(-34, 4), new Vector2(190, 100), new Vector2(1, 0.5f));
-            AddListener(buy.onClick, hub, nameof(HubController.BuyNoAds));
         }
 
         // ------------------------------------------------------------------ build settings

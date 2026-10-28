@@ -9,7 +9,7 @@ namespace AllMightyOne.Hub
 {
     /// <summary>
     /// The collection's home screen: game grid with category tabs, a "continue" card for the last game played, the shared
-    /// gem wallet, unlocking games with gems, free gems for a rewarded ad, settings and the Remove Ads offer.
+    /// gem wallet, unlocking games with gems, free gems for a rewarded ad, settings, daily reward and missions.
     /// </summary>
     public class HubController : MonoBehaviour
     {
@@ -52,11 +52,6 @@ namespace AllMightyOne.Hub
         public string PrivacyUrl = "https://example.com/privacy";
         public TMP_Text VersionText;
 
-        [Header("Remove Ads")]
-        public GameObject NoAdsButton;
-        public HubPopup NoAdsPopup;
-        public TMP_Text NoAdsPrice;
-
         [Header("Daily reward")]
         public HubPopup DailyPopup;
         [Tooltip("The seven day tiles, day 1 first.")]
@@ -75,7 +70,7 @@ namespace AllMightyOne.Hub
         public GameObject MissionsBadge;
 
         [Header("Banner")]
-        [Tooltip("Bottom strip kept free for the banner ad; collapsed after Remove Ads.")]
+        [Tooltip("Bottom strip kept free for the banner ad.")]
         public RectTransform BannerSpace;
         public RectTransform Content;
 
@@ -129,7 +124,6 @@ namespace AllMightyOne.Hub
             SoundSwitch.OnChanged.AddListener(on => { SetAudio(MOST_AudioManager.Channel.SFX, on); SetAudio(MOST_AudioManager.Channel.UI, on); });
             VibrationSwitch.OnChanged.AddListener(on => MOST_HapticFeedback.HapticsEnabled = on);
             if (VersionText) VersionText.text = $"v{Application.version}";
-            if (NoAdsPrice) NoAdsPrice.text = PurchaseBridge.PriceLabel(PurchaseBridge.NoAdsProduct);
 
             // back from a game with new gems: the wallet starts at what the player saw last, and gems fly in
             int seen = PlayerPrefs.GetInt(SeenGemsKey, -1);
@@ -271,9 +265,6 @@ namespace AllMightyOne.Hub
             }
             if (DailyBadge) DailyBadge.SetActive(DailyReward.Available);
             if (MissionsBadge) MissionsBadge.SetActive(DailyMissions.Claimable(Catalog) > 0);
-            if (NoAdsButton) NoAdsButton.SetActive(!AdsBridge.NoAds);
-            if (BannerSpace) BannerSpace.gameObject.SetActive(!AdsBridge.NoAds);
-            if (Content) Content.offsetMin = new Vector2(Content.offsetMin.x, AdsBridge.NoAds || !BannerSpace ? 0 : BannerSpace.rect.height);
         }
 
         public void OnCardClicked(GameEntry g)
@@ -376,7 +367,7 @@ namespace AllMightyOne.Hub
             });
         }
 
-        // ------------------------------------------------------------------ settings / remove ads
+        // ------------------------------------------------------------------ settings
 
         public void OpenSettings()
         {
@@ -393,21 +384,7 @@ namespace AllMightyOne.Hub
 
         public void OpenPrivacy() => Application.OpenURL(PrivacyUrl);
 
-        public void RestorePurchases() => PurchaseBridge.Restore(_ => RefreshAll());
-
-        public void OpenNoAds() => NoAdsPopup.Open();
-
-        public void BuyNoAds()
-        {
-            PurchaseBridge.Buy(PurchaseBridge.NoAdsProduct, ok =>
-            {
-                if (!ok || !this) return;
-                NoAdsPopup.Close();
-                RefreshAll();
-            });
-        }
-
-        HubPopup[] Popups => new[] { NoAdsPopup, SettingsPopup, FreeGemsPopup, UnlockPopup, DailyPopup, MissionsPopup };
+        HubPopup[] Popups => new[] { SettingsPopup, FreeGemsPopup, UnlockPopup, DailyPopup, MissionsPopup };
 
         bool AnyPopupOpen => Array.Exists(Popups, p => p && p.IsOpen);
 

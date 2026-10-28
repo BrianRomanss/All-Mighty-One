@@ -58,7 +58,7 @@ namespace AllMightyOne.Tests
             Call(hub, "CloseTopPopup");
             yield return new WaitForSeconds(0.5f);
 
-            foreach (var (method, name) in new[] { ("OpenFreeGems", "4_free_gems"), ("OpenSettings", "5_settings"), ("OpenNoAds", "6_no_ads") })
+            foreach (var (method, name) in new[] { ("OpenFreeGems", "4_free_gems"), ("OpenSettings", "5_settings") })
             {
                 Call(hub, method);
                 yield return new WaitForSeconds(0.6f);

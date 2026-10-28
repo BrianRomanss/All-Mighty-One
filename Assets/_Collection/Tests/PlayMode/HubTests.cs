@@ -23,11 +23,10 @@ namespace AllMightyOne.Tests
         {
             // keys the hub writes: saved here and restored after each test
             var keys = Ids.SelectMany(id => new[] { "AMO_Unlocked_" + id, "AMO_Played_" + id })
-                .Concat(new[] { "AMO_LastPlayed", "AMO_FreeGemsAt", "AMO_NoAds" }).ToArray();
+                .Concat(new[] { "AMO_LastPlayed", "AMO_FreeGemsAt" }).ToArray();
             _prefs = keys.Select(k => (k, PlayerPrefs.HasKey(k), PlayerPrefs.GetInt(k, 0), PlayerPrefs.GetString(k, ""))).ToArray();
             foreach (var id in Ids) PlayerPrefs.DeleteKey("AMO_Unlocked_" + id);
             PlayerPrefs.DeleteKey("AMO_FreeGemsAt");
-            PlayerPrefs.SetInt("AMO_NoAds", 0);
             yield return LoadScene(Scene);
             Bind();
             _db = Get<object>(_catalog, "Database");
@@ -170,21 +169,16 @@ namespace AllMightyOne.Tests
         }
 
         [UnityTest]
-        public IEnumerator RemoveAdsAndSettings()
+        public IEnumerator Settings_MusicSwitchReachesAudio_NoPurchaseUi()
         {
             yield return Setup();
             try
             {
-                Assert.IsTrue(FindObject("No Ads Button").activeInHierarchy);
+                // the collection sells nothing: no Remove Ads offer, no restore button, the banner strip always stays
+                Assert.IsNull(FindObject("No Ads Button"), "Remove Ads button still built");
+                Assert.IsNull(FindObject("No Ads Popup"), "Remove Ads popup still built");
+                Assert.IsNull(FindObject("Restore Button"), "Restore purchases button still built");
                 Assert.IsTrue(FindObject("Banner Space").activeInHierarchy);
-                Click("No Ads Button");
-                yield return null;
-                Assert.IsTrue(PopupOpen("NoAdsPopup"));
-                Click("Buy Button"); // placeholder purchase
-                yield return new WaitForSeconds(0.4f);
-                Assert.AreEqual(1, PlayerPrefs.GetInt("AMO_NoAds"));
-                Assert.IsFalse(FindObject("No Ads Button").activeInHierarchy, "Remove Ads offered after buying it");
-                Assert.IsFalse(FindObject("Banner Space").activeInHierarchy, "Banner space kept after Remove Ads");
 
                 var audio = Get<object>(_hub, "Audio");
                 bool music = Get<bool>(audio, "Music_IsOn");
