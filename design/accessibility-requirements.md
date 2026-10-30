@@ -60,7 +60,7 @@ elevated.
 | Text contrast | Basic | All UI text | Not Started | 4.5:1 body text, 3:1 large text (WCAG AA), checked on final colors, including text over game scenes. |
 | Color-as-only-indicator audit | Basic (elevated: audited per module) | All UI and gameplay | Not Started | See audit table. Each entry needs a shape/icon/label backup. |
 | Screen flash / strobe | Basic | All VFX and shared feedback effects | Not Started | Audit flash-heavy effects against the no more than 3 flashes/second guideline (Harding FPA, per template). Reduced-motion mode also lowers flash amplitude. |
-| Reduced-motion / screen-shake toggle | Comprehensive (elevated) | Shared feedback system, hub juice, camera shake in all modules | Not Started | Single setting, persisted in PlayerPrefs, read by the shared feedback layer so modules don't each implement it. Cannot remove gameplay movement. |
+| Reduced-motion / screen-shake toggle | Comprehensive (elevated) | Shared feedback system, hub juice, camera shake in all modules | In Progress | Single setting, persisted in PlayerPrefs, read by the shared feedback layer so modules don't each implement it. Cannot remove gameplay movement. 2026-10-30: `CollectionFeedback.ReducedMotion` (pref `AMO_ReducedMotion`) exists and turns off win confetti, end-screen pops and the gem-pill bump, and halves the lose flash; no settings toggle exposes it yet. |
 | Colorblind modes | Standard | — | Out of scope | Non-color cues are the mitigation. See Known Intentional Limitations. |
 | UI scaling / adjustable text size | Standard | — | Out of scope | See Known Intentional Limitations. |
 | High contrast mode | Comprehensive | — | Out of scope | See Known Intentional Limitations. |
@@ -139,7 +139,7 @@ elevated.
 | System | Visual Concerns | Motor Concerns | Cognitive Concerns | Auditory Concerns | Addressed | Notes |
 |--------|----------------|---------------|-------------------|------------------|-----------|-------|
 | Hub (game cards, shop, daily reward, missions, settings) | Text size and contrast on popups; locked/unlocked card state may rely on color | Touch target size of cards and popup buttons | Auto-dismissing popups and toasts (not audited) | Reward cues | Partial | Settings popup has Music, Sound and Vibration switches. Everything else Not Audited. |
-| Shared feedback layer (`CollectionFeedback`) | Flash/shake effects: none found in `_Collection` scripts; kit modules not checked | Haptics | None | Click/win/lose/unlock/gems cues through the audio manager's SFX/UI groups | Partial | Honors the Vibration switch and Sound switch. Natural single hook for the reduced-motion toggle. |
+| Shared feedback layer (`CollectionFeedback`, `CollectionJuice`) | One red edge flash per lost run (0.55 s, single pulse, well under 3/s); win confetti; kit modules not checked | Haptics | None | Click/win/lose/unlock/gems cues through the audio manager's SFX/UI groups | Partial | Honors the Vibration switch and Sound switch. Natural single hook for the reduced-motion toggle. |
 | The 12 game modules (Cubey, Block Puzzle, Pistol, Squad Runner, Crowd Count, BigBrain, Bull Dodge, ThreeRoads, Splat, Block Adventure, Ninja, Bomb Survival) | Not Audited | Not Audited | Not Audited | Not Audited | Not Started | Replace with one row per module as each is audited. Splat tile coloring is a known color-signal candidate. |
 
 ---

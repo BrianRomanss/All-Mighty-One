@@ -48,8 +48,10 @@ namespace AllMightyOne.Hub
         [Header("Settings popup")]
         public HubPopup SettingsPopup;
         public HubSwitch MusicSwitch, SoundSwitch, VibrationSwitch;
+        [Tooltip("On = no confetti, menu pops or bumps and a softer lose flash (CollectionFeedback.ReducedMotion).")]
+        public HubSwitch ReducedMotionSwitch;
         public MOST_AudioManager Audio;
-        public string PrivacyUrl = "https://example.com/privacy";
+        public string PrivacyUrl = "https://brianromanss.github.io/All-Mighty-One/";
         public TMP_Text VersionText;
 
         [Header("Daily reward")]
@@ -124,6 +126,7 @@ namespace AllMightyOne.Hub
             MusicSwitch.OnChanged.AddListener(on => SetAudio(MOST_AudioManager.Channel.Music, on));
             SoundSwitch.OnChanged.AddListener(on => { SetAudio(MOST_AudioManager.Channel.SFX, on); SetAudio(MOST_AudioManager.Channel.UI, on); });
             VibrationSwitch.OnChanged.AddListener(on => MOST_HapticFeedback.HapticsEnabled = on);
+            if (ReducedMotionSwitch) ReducedMotionSwitch.OnChanged.AddListener(on => CollectionFeedback.ReducedMotion = on);
             if (VersionText) VersionText.text = $"v{Application.version}";
 
             // back from a game with new gems: the wallet starts at what the player saw last, and gems fly in
@@ -376,6 +379,7 @@ namespace AllMightyOne.Hub
             MusicSwitch.Set(!Audio || Audio.Music_IsOn, true);
             SoundSwitch.Set(!Audio || Audio.SFX_IsOn, true);
             VibrationSwitch.Set(MOST_HapticFeedback.HapticsEnabled, true);
+            if (ReducedMotionSwitch) ReducedMotionSwitch.Set(CollectionFeedback.ReducedMotion, true);
             SettingsPopup.Open();
         }
 

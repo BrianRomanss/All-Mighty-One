@@ -63,6 +63,8 @@ namespace AllMightyOne.EditorTools
             var bestText = Label(labelSource, endUi, "Run Best Text", "BEST 0", new Vector2(0, 560), 70, new Color(1f, 0.85f, 0.3f));
             var gemsText = Label(labelSource, endUi, "Run Gems Text", "+0 GEMS", new Vector2(0, 440), 80, new Color(0.45f, 0.9f, 1f));
             Label(labelSource, endUi, "Restart Hint", "TAP TO RETRY", new Vector2(0, -700), 80, Color.white);
+            var kitHint = endUi.Find("RestartButton/Text (Legacy)"); // the kit's "Tap To Continue": TAP TO RETRY says it
+            if (kitHint) kitHint.gameObject.SetActive(false);
 
             var host = gm.gameObject;
             var meta = host.GetComponent<DodgeMeta>() ?? host.AddComponent<DodgeMeta>();

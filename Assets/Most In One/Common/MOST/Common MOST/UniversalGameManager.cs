@@ -307,7 +307,11 @@ namespace Solo.MOST_IN_ONE
             {
                 OnWinEvent.Invoke();
                 yield return new WaitForSeconds(DelayBeforeWinJump);
-                if (TryGetMenu(OnWinMenuName, out var menu)) ShowOnly(menu.TargetObject, menu.DeactivateAllOnEnable);
+                if (TryGetMenu(OnWinMenuName, out var menu))
+                {
+                    ShowOnly(menu.TargetObject, menu.DeactivateAllOnEnable);
+                    AllMightyOne.CollectionJuice.MenuShown(menu.TargetObject, true);
+                }
                 if (ShowLevelEndAds) AllMightyOne.AdsBridge.OnLevelEnd("level_complete");
                 if (AutoAdvanceOnWin)
                 {
@@ -319,7 +323,11 @@ namespace Solo.MOST_IN_ONE
             {
                 OnLoseEvent?.Invoke();
                 yield return new WaitForSeconds(DelayBeforeLoseJump);
-                if (TryGetMenu(OnLoseMenuName, out var menu)) ShowOnly(menu.TargetObject, menu.DeactivateAllOnEnable);
+                if (TryGetMenu(OnLoseMenuName, out var menu))
+                {
+                    ShowOnly(menu.TargetObject, menu.DeactivateAllOnEnable);
+                    AllMightyOne.CollectionJuice.MenuShown(menu.TargetObject, false);
+                }
                 if (ShowLevelEndAds) AllMightyOne.AdsBridge.OnLevelEnd("level_fail");
             }
             _gameOverRoutine = null;

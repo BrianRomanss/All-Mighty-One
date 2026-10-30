@@ -41,8 +41,21 @@ namespace AllMightyOne
                 _ui.outputAudioMixerGroup = audio.UIGroup;
                 _sfx.outputAudioMixerGroup = audio.SFXGroup;
             }
+            if (!GetComponent<CollectionJuice>()) gameObject.AddComponent<CollectionJuice>();
             SceneManager.sceneLoaded += OnSceneLoaded;
             StartCoroutine(HookButtons());
+        }
+
+        const string ReducedMotionKey = "AMO_ReducedMotion";
+
+        /// <summary>
+        /// The player's reduced-motion setting: no confetti, no menu pops or bumps, a softer lose flash. Gameplay
+        /// movement is never affected.
+        /// </summary>
+        public static bool ReducedMotion
+        {
+            get => PlayerPrefs.GetInt(ReducedMotionKey, 0) == 1;
+            set { PlayerPrefs.SetInt(ReducedMotionKey, value ? 1 : 0); PlayerPrefs.Save(); }
         }
 
         void OnDestroy()
@@ -54,14 +67,22 @@ namespace AllMightyOne
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode) => StartCoroutine(HookButtons());
 
-        // every button in the new scene clicks (runtime listener: nothing is saved into the scenes). Waits for the
-        // scene's Start, which builds buttons too (hub cards are copies, and copies don't carry runtime listeners).
+        // every button in the new scene clicks and squashes when held (runtime listener and component: nothing is
+        // saved into the scenes). Waits for the scene's Start, which builds buttons too (hub cards are copies, and
+        // copies don't carry runtime listeners).
         IEnumerator HookButtons()
         {
             yield return null;
             _hooked.RemoveWhere(b => !b);
             foreach (var b in FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                if (_hooked.Add(b)) b.onClick.AddListener(OnButton);
+            {
+                if (!_hooked.Add(b)) continue;
+                b.onClick.AddListener(OnButton);
+                // buttons the hub already squashes, or that an Animator scales, keep what they have
+                if (b.transition != Selectable.Transition.Animation && !b.GetComponentInParent<UiPress>(true)
+                    && !b.GetComponentInParent<Animator>(true))
+                    b.gameObject.AddComponent<UiPress>();
+            }
         }
 
         void OnButton()
@@ -79,7 +100,11 @@ namespace AllMightyOne
         }
 
         /// <summary> Called by UniversalGameManager the moment a run is won or lost. </summary>
-        public static void RunEnded(bool won) => Play(won ? Cue.Win : Cue.Lose);
+        public static void RunEnded(bool won)
+        {
+            Play(won ? Cue.Win : Cue.Lose);
+            if (!won) CollectionJuice.LoseFlash(); // the win's confetti waits for the win screen (MenuShown)
+        }
 
         void PlayCue(Cue cue)
         {

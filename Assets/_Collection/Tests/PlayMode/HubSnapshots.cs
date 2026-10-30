@@ -264,6 +264,88 @@ namespace AllMightyOne.Tests
             Assert.Pass($"Store shots in {StoreDir}");
         }
 
+        /// <summary>
+        /// The shared juice on real end screens: Cubey's win screen popping in under confetti, Bull Dodge's lose flash
+        /// and its lose screen popping in. Saved to production/qa/evidence/2026-10-30-juice.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator CaptureJuice()
+        {
+            string dir = Path.Combine(Application.dataPath, "..", "production", "qa", "evidence", "2026-10-30-juice");
+            Directory.CreateDirectory(dir);
+#if UNITY_EDITOR
+            UnityEditor.ShaderUtil.allowAsyncCompilation = false;
+#endif
+            yield return EndShot("Assets/Most In One/Grid/Scene/Cubey.unity", true, dir, ("win_confetti_cubey", 0.35f), ("win_settled_cubey", 0.9f));
+            yield return EndShot("Assets/Most In One/Dodge/Scenes/Dodge.unity", false, dir, ("lose_flash_dodge", -1f), ("lose_pop_dodge", 0.12f), ("lose_settled_dodge", 0.7f));
+            Assert.Pass($"Juice shots in {dir}");
+        }
+
+        // starts a run, ends it, and shoots each frame at its time after the end screen shows (negative: right after
+        // the run ends, before the screen). Overlay canvases render through the main camera into one texture for the
+        // whole shot, so the juice layer lays its confetti out at the texture's size, as it would on the phone.
+        static IEnumerator EndShot(string scene, bool win, string dir, params (string file, float at)[] frames)
+        {
+            const int w = 540, h = 1170;
+            yield return LoadScene(scene);
+            yield return new WaitForSeconds(0.5f);
+            var start = Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None)
+                .FirstOrDefault(b => b.isActiveAndEnabled && b.name.Replace(" ", "").StartsWith("StartGame"));
+            if (start) start.onClick.Invoke();
+            yield return new WaitForSeconds(0.5f);
+
+            var gm = Find("Solo.MOST_IN_ONE.UniversalGameManager");
+            var db = Get<object>(gm, "DatabaseHolder");
+            string levelName = Get<string>(gm, "LevelDataName");
+            bool hasLevel = db != null && !string.IsNullOrEmpty(levelName) && GetIntData(db, levelName) != null;
+            int level = hasLevel ? GetInt(db, levelName) : 0;
+            int gems = db != null && GetIntData(db, "Currency_Gems") != null ? GetInt(db, "Currency_Gems") : -1;
+
+            var cam = Camera.main;
+            var rt = new RenderTexture(w, h, 24) { antiAliasing = 4 };
+            cam.targetTexture = rt;
+            var overlays = new System.Collections.Generic.List<(Canvas canvas, int order)>();
+            foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                if (c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay)
+                {
+                    overlays.Add((c, c.sortingOrder));
+                    c.renderMode = RenderMode.ScreenSpaceCamera;
+                    c.worldCamera = cam;
+                    c.planeDistance = cam.nearClipPlane + 0.05f;
+                    c.sortingOrder = 1000 + c.sortingOrder; // keeps the juice above the game's own UI
+                }
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+            try
+            {
+                Call(gm, win ? "OnWin" : "OnLose");
+                float delay = Get<float>(gm, win ? "DelayBeforeWinJump" : "DelayBeforeLoseJump");
+                float t = 0f;
+                foreach (var (file, at) in frames.OrderBy(f => f.at))
+                {
+                    float due = at < 0 ? 0.1f : delay + at;
+                    while (t < due) { yield return null; t += Time.deltaTime; }
+                    cam.Render();
+                    RenderTexture.active = rt;
+                    var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+                    tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                    RenderTexture.active = null;
+                    File.WriteAllBytes(Path.Combine(dir, file + ".png"), tex.EncodeToPNG());
+                    Object.Destroy(tex);
+                }
+            }
+            finally
+            {
+                cam.targetTexture = null;
+                foreach (var (c, order) in overlays)
+                    if (c) { c.renderMode = RenderMode.ScreenSpaceOverlay; c.worldCamera = null; c.sortingOrder = order; }
+                Object.Destroy(rt);
+                if (hasLevel) SetInt(db, levelName, level);
+                if (gems >= 0) SetInt(db, "Currency_Gems", gems);
+                if (db != null) Call(db, "SaveToJson");
+            }
+        }
+
         // the main camera's view with every overlay canvas drawn on top, as on the device
         internal static IEnumerator CaptureView(string file, int w = 540, int h = 1170, string dir = null)
         {

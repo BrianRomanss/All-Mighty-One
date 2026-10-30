@@ -470,11 +470,12 @@ namespace AllMightyOne.EditorTools
 
         static void BuildSettingsPopup(HubController hub, Transform root)
         {
-            var (popup, w) = Popup(root, "Settings Popup", "SETTINGS", Violet, 900, hub);
+            var (popup, w) = Popup(root, "Settings Popup", "SETTINGS", Violet, 1050, hub);
             hub.SettingsPopup = popup;
             hub.MusicSwitch = SettingRow(w, "MUSIC", Kit("Music"), -160);
             hub.SoundSwitch = SettingRow(w, "SOUND", Kit("Sound_On"), -310);
             hub.VibrationSwitch = SettingRow(w, "VIBRATION", Kit("Vibro_On"), -460);
+            hub.ReducedMotionSwitch = SettingRow(w, "REDUCE MOTION", Kit("Snowstar"), -610);
 
             var privacy = Button3D("Privacy Button", w, new Vector2(370, 110), new Color(0.25f, 0.6f, 1f), Ui("pill"), 10);
             Place((RectTransform)privacy.transform, new Vector2(0.5f, 0), new Vector2(0, 120), new Vector2(370, 110));
